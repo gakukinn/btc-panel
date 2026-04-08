@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>量化回测参数优选面板 v3</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // ── 图标 ────────────────────────────────────────────────────────────────
+    const Upload = ({ className, size = 24 }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+      </svg>
+    );
+    const BarChart3 = ({ className, size = 24 }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3" />
+      </svg>
+    );
+    const Filter = ({ className, size = 24 }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+      </svg>
+    );
+    const Award = ({ className, size = 24 }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+      </svg>
+    );
+    const Star = ({ className, size = 24 }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    );
+    const CheckCircle = ({ className, size = 24 }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+      </svg>
+    );
+    const XCircle = ({ className, size = 24 }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+    );
+    const Shield = ({ className, size = 24 }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    );
+    const Info = ({ className, size = 24 }) => (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    );
+
+    // ── 工具函数 ─────────────────────────────────────────────────────────────
+    const parseCSV = (text) => {
+      const lines = text.split('\n').filter(l => l.trim());
+      if (!lines.length) return [];
+      const parseRow = (line) => {
+        const values = [];
+        let current = '', inQuotes = false;
+        for (let char of line) {
+          if (char === '"') inQuotes = !inQuotes;
+          else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
+          else current += char;
+        }
+        values.push(current.trim());
+        return values;
+      };
+      const headers = parseRow(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''));
+      return lines.slice(1).map(line => {
+        const values = parseRow(line);
+        if (values.length !== headers.length) return null;
+        const row = {};
+        headers.forEach((header, idx) => {
+          const value = values[idx].replace(/^"|"$/g, '').trim();
+          if (value === '∅' || value === '') row[header] = null;
+          else if (value === 'true') row[header] = true;
+          else if (value === 'false') row[header] = false;
+          else {
+            // 安全剥离千分位逗号（如 "1,234.56" → 1234.56），防止数据失真
+            const isFormattedNum = /^-?\d{1,3}(,\d{3})*(\.\d+)?$/.test(value);
+            const clean = isFormattedNum ? value.replace(/,/g, '') : value;
+            row[header] = isNaN(clean) || clean === '' ? value : parseFloat(clean);
+          }
+        });
+        return row;
+      }).filter(Boolean);
+    };
+
+    const formatNumber = (num) => {
+      if (num == null || !isFinite(num)) return '-';
+      const abs = Math.abs(num);
+      if (abs >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+      if (abs >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+      return num.toFixed(2);
+    };
+
+    const colorMap = {
+      blue:   { bg: 'bg-blue-500/20',   border: 'border-blue-400/30',   text: 'text-blue-300'   },
+      cyan:   { bg: 'bg-cyan-500/20',   border: 'border-cyan-400/30',   text: 'text-cyan-300'   },
+      green:  { bg: 'bg-green-500/20',  border: 'border-green-400/30',  text: 'text-green-300'  },
+      purple: { bg: 'bg-purple-500/20', border: 'border-purple-400/30', text: 'text-purple-300' },
+      amber:  { bg: 'bg-amber-500/20',  border: 'border-amber-400/30',  text: 'text-amber-300'  },
+      rose:   { bg: 'bg-rose-500/20',   border: 'border-rose-400/30',   text: 'text-rose-300'   },
+      teal:   { bg: 'bg-teal-500/20',   border: 'border-teal-400/30',   text: 'text-teal-300'   },
+    };
+
+    const StatCard = ({ label, value, color = 'blue' }) => {
+      const c = colorMap[color] || colorMap.blue;
+      return (
+        <div className={`${c.bg} backdrop-blur rounded-xl p-4 border ${c.border}`}>
+          <div className={`${c.text} text-xs mb-1`}>{label}</div>
+          <div className="text-3xl font-bold">{value}</div>
+        </div>
+      );
+    };
+
+    const DataTable = ({ data, columns, rowClassName }) => (
+      <div className="overflow-x-auto rounded-lg border border-white/20">
+        <div className="max-h-96 overflow-y-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-white/20 border-b border-white/20 sticky top-0">
+              <tr>{columns.map((col, i) => (
+                <th key={i} className={`px-3 py-2 ${col.align || 'text-left'}`}>{col.header}</th>
+              ))}</tr>
+            </thead>
+            <tbody>
+              {data.map((row, idx) => (
+                <tr key={row.originalIndex ?? idx} className={rowClassName?.(row, idx) || 'border-b border-white/10 hover:bg-white/5'}>
+                  {columns.map((col, i) => (
+                    <td key={i} className={`px-3 py-2 ${col.align || 'text-left'}`}>{col.render(row, idx)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+
+    // ── 单步邻居稳健性评分条（增强版） ─────────────────────────────────────
+    const RobustnessBar = ({ score, totalNeighbors, stableNeighbors, passedNeighbors }) => {
+      const pct = Math.round((score || 0) * 100);
+      const color = pct >= 70 ? 'bg-teal-400' : pct >= 40 ? 'bg-yellow-400' : 'bg-red-400';
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-20 bg-white/10 rounded-full h-2 overflow-hidden">
+            <div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} />
+          </div>
+          <span className="text-xs text-gray-300">{pct}%</span>
+          <span className="text-xs text-gray-500" title={`总邻居:${totalNeighbors} 稳定:${stableNeighbors} 通过筛选:${passedNeighbors}`}>
+            ({stableNeighbors}/{totalNeighbors}稳)
+          </span>
+        </div>
+      );
+    };
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ── 核心算法：单步邻居法（Step-Neighbor Sensitivity Analysis） ──────────
+    // ════════════════════════════════════════════════════════════════════════
+    //
+    // 算法思路：
+    //   1. 推断每个参数的最小步长（实际数据中相邻值的最小差值）
+    //   2. 对每行，在"全量去重数据"中寻找"单步邻居"：
+    //      仅改变了 1~2 个参数，且每个变化量 ≤ 最小步长×1.5
+    //   3. 判断邻居是否"结果稳定"：净收益率偏差<15% 且 最大回撤差<5个百分点
+    //   4. 稳健性分数 = (稳定邻居比例×0.70 + 通过筛选比例×0.30) × 样本置信度
+    //   这样"ATR追踪倍数从14→13结果一样"才会被正确识别为高稳健性
+    //
+    // 提取参数元信息（varyingKeys + stepSizes），供 useEffect 分块计算复用
+    const prepareStepNeighborMeta = (allRows) => {
+      const allKeys = Object.keys(allRows[0]?.strategyParams || {});
+      const numericVaryingKeys = allKeys.filter(key => {
+        const vals = allRows.map(r => r.strategyParams?.[key]).filter(v => typeof v === 'number' && isFinite(v));
+        if (vals.length < 2) return false;
+        const firstVal = vals[0];
+        return vals.some(v => v !== firstVal);
+      });
+      const boolVaryingKeys = allKeys.filter(key => {
+        const vals = allRows.map(r => r.strategyParams?.[key]).filter(v => typeof v === 'boolean');
+        if (vals.length < 2) return false;
+        return vals.some(v => v !== vals[0]);
+      });
+      const stepSizes = {};
+      numericVaryingKeys.forEach(key => {
+        const vals = [...new Set(
+          allRows.map(r => r.strategyParams?.[key]).filter(v => typeof v === 'number' && isFinite(v))
+        )].sort((a, b) => a - b);
+        if (vals.length < 2) { stepSizes[key] = Infinity; return; }
+        const diffs = [];
+        for (let i = 1; i < vals.length; i++) {
+          const diff = vals[i] - vals[i-1];
+          if (diff > 1e-9) diffs.push(diff);
+        }
+        if (diffs.length === 0) { stepSizes[key] = Infinity; return; }
+        const counts = {};
+        diffs.forEach(d => {
+          const rounded = Number(d.toFixed(8));
+          counts[rounded] = (counts[rounded] || 0) + 1;
+        });
+        stepSizes[key] = Number(Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b));
+      });
+      return { numericVaryingKeys, boolVaryingKeys, stepSizes };
+    };
+
+    // ════════════════════════════════════════════════════════════════════════
+    const TradingStrategyAnalyzer = () => {
+      const [data, setData] = useState([]);
+      const [filters, setFilters] = useState({
+        minTrades: 20,
+        minProfitFactor: 1.2,
+        maxSingleLossPct: 15,
+        maxDrawdown: 20,
+        minSharpe: 0.10,
+        minSortino: 1.0,
+        minWinRate: 25,
+        minWinLossRatio: 2.0,
+      });
+      const [scoreWeights, setScoreWeights] = useState({
+        calmar: 0.30, sortino: 0.25, profitFactor: 0.25, sharpe: 0.05, netReturn: 0.15
+      });
+      const [robustnessWeight, setRobustnessWeight] = useState(0.30);
+      const [showParetoOnly, setShowParetoOnly] = useState(false);
+      const [allTableSort, setAllTableSort] = useState('combined');
+      const [uploadLog, setUploadLog] = useState('');
+      const [showAlgoInfo, setShowAlgoInfo] = useState(false);
+      const [robustnessData, setRobustnessData] = useState({});
+      const [robustnessProgress, setRobustnessProgress] = useState(0); // 0=未开始, 1-99=计算中, 100=完成
+      const robustnessAbortRef = React.useRef(null); // 用于中止旧的计算任务
+
+      const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const parsed = parseCSV(e.target.result);
+            if (parsed.length === 0) { setUploadLog('❌ 未读取到数据，请确认首行是表头'); return; }
+            setData(parsed);
+            setUploadLog(`✅ 成功加载 ${parsed.length} 行数据`);
+          } catch (error) { setUploadLog('❌ 文件解析失败: ' + error.message); }
+        };
+        reader.readAsText(file);
+      };
+
+      // ── processedData ────────────────────────────────────────────────────
+      const processedData = useMemo(() => data.map((row, idx) => {
+        const getVal = (row, ...keys) => { for (const k of keys) if (row[k] !== undefined && row[k] !== null) return row[k]; return 0; };
+
+        const initialCapital   = getVal(row, 'Initial Capital: All', 'Initial Capital', 'Initial capital') || 10000;
+        const percentProfit    = getVal(row, 'Percent profitable: All', 'Percent Profitable', 'Win Rate');
+        const grossProfit      = getVal(row, 'Gross profit: All', 'Gross Profit');
+        const grossLoss        = Math.abs(getVal(row, 'Gross loss: All', 'Gross Loss'));
+        const maxDD            = Math.abs(getVal(row, 'Max equity drawdown', 'Max Drawdown'));
+        const maxDDPct         = Math.abs(getVal(row, 'Max equity drawdown %', 'Max Drawdown %'));
+        const totalTrades      = getVal(row, 'Total trades: All', 'Total Trades');
+        const netProfit        = getVal(row, 'Net profit: All', 'Net Profit', 'Net P&L: All', 'Total P&L');
+        const netProfitPct     = getVal(row, 'Net profit %: All', 'Net Profit %', 'Net P&L %: All', 'Total P&L %');
+        const netPnlLong       = getVal(row, 'Net P&L: Long', 'Net profit: Long');
+        const netPnlShort      = getVal(row, 'Net P&L: Short', 'Net profit: Short');
+        const netPnlPctLong    = getVal(row, 'Net P&L %: Long', 'Net profit %: Long');
+        const netPnlPctShort   = getVal(row, 'Net P&L %: Short', 'Net profit %: Short');
+        const winningTrades    = getVal(row, 'Winning trades: All', 'Winning Trades');
+        const losingTrades     = getVal(row, 'Losing trades: All', 'Losing Trades');
+        const avgWin           = getVal(row, 'Avg winning trade: All', 'Avg Trade');
+        const avgLoss          = Math.abs(getVal(row, 'Avg losing trade: All', 'Avg Trade'));
+        const largestLoss      = Math.abs(getVal(row, 'Largest losing trade: All', 'Largest Losing Trade'));
+        const largestLossPct   = Math.abs(getVal(row, 'Largest losing trade percent: All', 'Largest Losing Trade %'));
+        const sharpe           = getVal(row, 'Sharpe ratio', 'Sharpe Ratio');
+        const sortino          = getVal(row, 'Sortino ratio', 'Sortino Ratio');
+        const profitFactor     = getVal(row, 'Profit factor: All', 'Profit Factor');
+        const marginCalls      = getVal(row, 'Margin calls: All', 'Margin Calls', 'Margin calls');
+        const totalTradesLong  = getVal(row, 'Total trades: Long') || 0;
+        const totalTradesShort = getVal(row, 'Total trades: Short') || 0;
+
+        let finalAvgWin = avgWin, finalAvgLoss = avgLoss;
+        if (finalAvgWin === 0 && winningTrades > 0 && grossProfit > 0) finalAvgWin = grossProfit / winningTrades;
+        if (finalAvgLoss === 0 && losingTrades > 0 && grossLoss > 0)   finalAvgLoss = grossLoss / losingTrades;
+
+        const p = percentProfit > 1 ? percentProfit / 100 : percentProfit;
+        const winRate = percentProfit;
+        const E = p * finalAvgWin - (1 - p) * finalAvgLoss;
+        const ddPct = maxDDPct || (maxDD / initialCapital) * 100;
+        const returnPct = netProfitPct;
+        const calmarRatio = ddPct > 0 ? returnPct / ddPct : 0;
+        const R = finalAvgLoss > 0 ? finalAvgWin / finalAvgLoss : 0;
+        // 无亏损时 Kelly 公式分母为零；上限钳制到 1.0 防止数学溢出
+        let kellyFraction = 0;
+        if (finalAvgLoss === 0 && finalAvgWin > 0 && winningTrades > 0) {
+          kellyFraction = 1.0;
+        } else if (R > 0) {
+          kellyFraction = Math.min(1.0, (p * R - (1 - p)) / R);
+        }
+        const singleLossPct = largestLossPct || (largestLoss / initialCapital) * 100;
+
+        const strategyParams = {};
+        Object.keys(row).forEach(key => {
+          if (key.startsWith('__')) strategyParams[key.replace(/^__/, '')] = row[key];
+        });
+
+        return {
+          ...row, originalIndex: idx + 2,
+          E, ddPct, returnPct, calmarRatio, winRate, winLossRatio: R,
+          kellyFraction, singleLossPct, adjustedSharpe: sharpe, totalExpectation: netProfit,
+          initialCapital, percentProfit, grossProfit, grossLoss, maxDD, totalTrades,
+          winningTrades, losingTrades, netProfit, netProfitPct, netPnlLong, netPnlShort,
+          netPnlPctLong, netPnlPctShort, sharpe, sortino, profitFactor, marginCalls,
+          avgWin, avgLoss: finalAvgLoss, totalTradesLong, totalTradesShort, strategyParams
+        };
+      }), [data]);
+
+      // ── 去重 ─────────────────────────────────────────────────────────────
+      const deduplicatedData = useMemo(() => {
+        const seen = new Set();
+        return processedData.filter(row => {
+          const key = [row.netProfit?.toFixed(2), row.ddPct?.toFixed(2), row.totalTrades,
+                       row.profitFactor?.toFixed(3), row.sharpe?.toFixed(3)].join('|');
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }, [processedData]);
+
+      // ── 共享过滤函数 ──────────────────────────────────────────────────────
+      const getFilterReasons = (row) => {
+        const reasons = [];
+        if (row.netProfit <= 0)                              reasons.push('亏损');
+        if (row.E <= 0)                                      reasons.push('期望为负');
+        if (row.profitFactor < filters.minProfitFactor)      reasons.push(`盈利因子<${filters.minProfitFactor}`);
+        if (row.totalTrades < filters.minTrades)             reasons.push(`交易数<${filters.minTrades}`);
+        if (row.marginCalls > 0)                             reasons.push('有爆仓');
+        if (row.singleLossPct > filters.maxSingleLossPct)   reasons.push(`单笔亏损>${filters.maxSingleLossPct}%`);
+        const sampleOk = row.ddPct >= 2.0 || (row.totalTrades >= 30 && row.winningTrades >= 8);
+        if (!sampleOk) reasons.push('样本不足(回撤<2%需30笔+8胜)');
+
+        if (reasons.length === 0) {
+          if (row.ddPct > filters.maxDrawdown)               reasons.push(`回撤>${filters.maxDrawdown}%`);
+          if (row.sharpe < filters.minSharpe)                reasons.push(`夏普<${filters.minSharpe}`);
+          if (row.sortino < filters.minSortino)              reasons.push(`索提诺<${filters.minSortino}`);
+          if (row.winRate < filters.minWinRate)              reasons.push(`胜率<${filters.minWinRate}%`);
+          if (row.winLossRatio < filters.minWinLossRatio)    reasons.push(`盈亏比<${filters.minWinLossRatio}`);
+        }
+        return reasons;
+      };
+
+      const filteredData = useMemo(() => deduplicatedData.map(row => {
+        const reasons = getFilterReasons(row);
+        return { ...row, filterReasons: reasons, passed: reasons.length === 0 };
+      }).filter(r => r.passed), [deduplicatedData, filters]);
+
+      // ── 动态归一化评分 ───────────────────────────────────────────────────
+      const scoredData = useMemo(() => {
+        if (filteredData.length === 0) return [];
+        const N = filteredData.length;
+        const pLow = N < 50 ? 0.0 : 0.05, pHigh = N < 50 ? 1.0 : 0.95;
+        const pct = (arr, p) => { const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length-1, Math.floor(s.length*p))] || 0; };
+        const allDDs = filteredData.map(d => d.ddPct).sort((a, b) => a - b);
+        const calmarFloor = Math.max(allDDs[Math.floor(allDDs.length/2)] || 5.0, 2.0);
+        const recalc = filteredData.map(r => ({ ...r, calmarRatio: r.returnPct / Math.max(r.ddPct, calmarFloor) }));
+        const dynNorm = (v, min, max) => max === min ? 0.5 : Math.max(0, Math.min(1, (v-min)/(max-min)));
+        const ranges = {
+          calmar:      { min: pct(recalc.map(d=>d.calmarRatio), pLow),    max: pct(recalc.map(d=>d.calmarRatio), pHigh) },
+          sharpe:      { min: pct(recalc.map(d=>d.adjustedSharpe), pLow), max: pct(recalc.map(d=>d.adjustedSharpe), pHigh) },
+          sortino:     { min: pct(recalc.map(d=>d.sortino), pLow),        max: pct(recalc.map(d=>d.sortino), pHigh) },
+          profitFactor:{ min: pct(recalc.map(d=>d.profitFactor), pLow),   max: pct(recalc.map(d=>d.profitFactor), pHigh) },
+          netReturn:   { min: pct(recalc.map(d=>d.returnPct), pLow),      max: pct(recalc.map(d=>d.returnPct), pHigh) },
+        };
+        return recalc.map(row => ({
+          ...row,
+          finalScore:
+            dynNorm(row.calmarRatio, ranges.calmar.min, ranges.calmar.max)       * scoreWeights.calmar +
+            dynNorm(row.adjustedSharpe, ranges.sharpe.min, ranges.sharpe.max)    * scoreWeights.sharpe +
+            dynNorm(row.sortino, ranges.sortino.min, ranges.sortino.max)         * scoreWeights.sortino +
+            dynNorm(row.profitFactor, ranges.profitFactor.min, ranges.profitFactor.max) * scoreWeights.profitFactor +
+            dynNorm(row.returnPct, ranges.netReturn.min, ranges.netReturn.max)   * (scoreWeights.netReturn || 0)
+        }));
+      }, [filteredData, scoreWeights]);
+
+      // ── 帕累托前沿 ───────────────────────────────────────────────────────
+      const paretoFront = useMemo(() => {
+        if (scoredData.length === 0) return [];
+        const dims = ['calmarRatio', 'sharpe', 'sortino', 'profitFactor'];
+        return scoredData.filter((item, i) =>
+          !scoredData.some((other, j) => i !== j &&
+            dims.every(d => other[d] >= item[d]) && dims.some(d => other[d] > item[d]))
+        );
+      }, [scoredData]);
+
+      const isPareto = (row) => paretoFront.some(p => p.originalIndex === row.originalIndex);
+
+      // ── 效用分数（风险惩罚、稳定性系数） ────────────────────────────────
+      const enrichedScoredData = useMemo(() => {
+        if (scoredData.length === 0) return [];
+        return scoredData.map(row => {
+          const stabilityCoeff = row.totalTrades >= 80 ? 1.03 : row.totalTrades >= 50 ? 1.01 : 1.0;
+          let riskProximityPenalty = 0;
+          // 防止用户将过滤阈值设为 0 导致除零，产生 -Infinity 评分
+          const safeMaxDD = Math.max(0.0001, filters.maxDrawdown);
+          const safeMaxLoss = Math.max(0.0001, filters.maxSingleLossPct);
+          const ddProx = row.ddPct / safeMaxDD;
+          if (ddProx > 0.85) riskProximityPenalty += 0.15 * (ddProx - 0.85) / 0.15;
+          const lossProx = row.singleLossPct / safeMaxLoss;
+          if (lossProx > 0.8) riskProximityPenalty += 0.1 * (lossProx - 0.8) / 0.2;
+
+          let longShortPenalty = 0;
+          const isBidi = (row.totalTradesLong||0) > 0 && (row.totalTradesShort||0) > 0;
+          if (isBidi) {
+            const l = row.netPnlLong||0, s = row.netPnlShort||0, tot = Math.abs(l)+Math.abs(s);
+            if (tot > 0) {
+              if (l < 0 || s < 0) longShortPenalty = 0.08 * Math.abs(Math.min(l,s)) / tot;
+              else { const dom = Math.max(l,s)/tot; if (dom > 0.90) longShortPenalty = 0.03*(dom-0.90)/0.10; }
+            }
+          }
+          const utilityScore = row.finalScore * stabilityCoeff - riskProximityPenalty - longShortPenalty;
+          return { ...row, utilityScore, stabilityCoeff, riskProximityPenalty };
+        }).sort((a, b) => b.utilityScore - a.utilityScore);
+      }, [scoredData, filters]);
+
+      // ════════════════════════════════════════════════════════════════════════
+      // ── 单步邻居稳健性：useEffect + 分块异步计算，防止大数据集卡死主线程 ───
+      // ════════════════════════════════════════════════════════════════════════
+      React.useEffect(() => {
+        // 中止上一轮未完成的计算（通过 abort flag）
+        let aborted = false;
+        if (robustnessAbortRef.current) robustnessAbortRef.current();
+        robustnessAbortRef.current = () => { aborted = true; };
+
+        if (deduplicatedData.length < 2) {
+          setRobustnessData({});
+          setRobustnessProgress(0);
+          return;
+        }
+
+        setRobustnessProgress(1); // 开始计算
+
+        // 在 setTimeout(0) 后启动，让 React 先渲染进度条再开始密集计算
+        setTimeout(() => {
+          if (aborted) return;
+
+          const passedSet = new Set(filteredData.map(r => r.originalIndex));
+          // 复用外部函数的前置逻辑：提取 varyingKeys 和 stepSizes
+          const { numericVaryingKeys, boolVaryingKeys, stepSizes } =
+            prepareStepNeighborMeta(deduplicatedData);
+
+          if (numericVaryingKeys.length === 0 && boolVaryingKeys.length === 0) {
+            setRobustnessData({});
+            setRobustnessProgress(100);
+            return;
+          }
+
+          const result = {};
+          const totalRows = deduplicatedData.length;
+          let currentIndex = 0;
+          const CHUNK = 150; // 每块处理行数，可按需调整
+
+          const processChunk = () => {
+            if (aborted) return;
+            const end = Math.min(currentIndex + CHUNK, totalRows);
+
+            for (let i = currentIndex; i < end; i++) {
+              const row = deduplicatedData[i];
+              const rowReturn = row.returnPct || 0;
+              const rowDD = row.ddPct || 0;
+              let totalNeighbors = 0, stableNeighbors = 0, passedNeighbors = 0;
+
+              for (let j = 0; j < totalRows; j++) {
+                if (i === j) continue;
+                const other = deduplicatedData[j];
+                let changedParams = 0;
+                let anyExceedsTwoSteps = false;
+
+                for (const key of numericVaryingKeys) {
+                  const vRow = row.strategyParams?.[key];
+                  const vOther = other.strategyParams?.[key];
+                  if (typeof vRow !== 'number' || !isFinite(vRow) ||
+                      typeof vOther !== 'number' || !isFinite(vOther)) continue;
+                  const diff = Math.abs(vRow - vOther);
+                  if (diff < 1e-9) continue;
+                  const step = stepSizes[key];
+                  if (!isFinite(step) || step <= 0) { changedParams++; continue; }
+                  if (diff / step > 1.5) { anyExceedsTwoSteps = true; break; }
+                  changedParams++;
+                }
+
+                if (!anyExceedsTwoSteps) {
+                  for (const key of boolVaryingKeys) {
+                    const vRow = row.strategyParams?.[key];
+                    const vOther = other.strategyParams?.[key];
+                    if (typeof vRow !== 'boolean' || typeof vOther !== 'boolean') continue;
+                    if (vRow !== vOther) changedParams++;
+                  }
+                }
+
+                if (anyExceedsTwoSteps || changedParams === 0 || changedParams > 2) continue;
+
+                totalNeighbors++;
+                if (passedSet.has(other.originalIndex)) passedNeighbors++;
+
+                const otherReturn = other.returnPct || 0;
+                const otherDD = other.ddPct || 0;
+                const ddDiffPt = Math.abs(otherDD - rowDD);
+                let returnDiffPct;
+                if (Math.abs(rowReturn) < 1e-6) {
+                  returnDiffPct = Math.abs(otherReturn) < 1e-6 ? 0 : 1;
+                } else {
+                  returnDiffPct = Math.abs(otherReturn - rowReturn) / Math.abs(rowReturn);
+                }
+                if (returnDiffPct < 0.15 && ddDiffPt < 5.0) stableNeighbors++;
+              }
+
+              const stableRatio = totalNeighbors > 0 ? stableNeighbors / totalNeighbors : 0;
+              const passedRatio = totalNeighbors > 0 ? passedNeighbors / totalNeighbors : 0;
+              const confidenceMultiplier = totalNeighbors >= 3 ? 1.0 : (totalNeighbors > 0 ? 0.9 : 0);
+              result[row.originalIndex] = {
+                totalNeighbors, stableNeighbors, passedNeighbors,
+                stableRatio, passedRatio,
+                robustnessScore: (stableRatio * 0.70 + passedRatio * 0.30) * confidenceMultiplier,
+                paramDimensions: numericVaryingKeys.length,
+                boolDimensions: boolVaryingKeys.length,
+                stepSizes,
+              };
+            }
+
+            currentIndex = end;
+            setRobustnessProgress(Math.round((currentIndex / totalRows) * 100));
+
+            if (currentIndex < totalRows) {
+              setTimeout(processChunk, 0); // 让出主线程
+            } else {
+              setRobustnessData(result);
+              setRobustnessProgress(100);
+            }
+          };
+
+          setTimeout(processChunk, 0);
+        }, 0);
+
+        return () => { aborted = true; };
+      }, [deduplicatedData, filteredData]);
+
+      // ── 最终综合排名（效用分 × 稳健性修正） ─────────────────────────────
+      const finalRankedData = useMemo(() => {
+        if (enrichedScoredData.length === 0) return [];
+
+        return enrichedScoredData.map(row => {
+          const rb = robustnessData[row.originalIndex] || {
+            totalNeighbors: 0, stableNeighbors: 0, passedNeighbors: 0, robustnessScore: 0
+          };
+          // 综合分 = 效用分 × [(1-权重) + 权重 × 稳健性]
+          // 当 robustnessWeight=0.3 时：孤峰最多得 70% 效用分，高原可得 100%
+          // 负分不乘以稳健性乘数：负效用分乘以 <1 的乘数会使其绝对值缩小，反而排名提升
+          const multiplier = (1 - robustnessWeight) + robustnessWeight * rb.robustnessScore;
+          const combinedScore = row.utilityScore > 0 ? row.utilityScore * multiplier : row.utilityScore;
+          return {
+            ...row,
+            neighborCount: rb.totalNeighbors,
+            stableNeighborCount: rb.stableNeighbors,
+            passedNeighborCount: rb.passedNeighbors,
+            robustnessScore: rb.robustnessScore,
+            combinedScore
+          };
+        }).sort((a, b) => b.combinedScore - a.combinedScore);
+      }, [enrichedScoredData, robustnessData, robustnessWeight]);
+
+      const recommendedParameter = useMemo(() => finalRankedData.length > 0 ? finalRankedData[0] : null, [finalRankedData]);
+
+      const displayData = useMemo(() => {
+        const src = showParetoOnly ? finalRankedData.filter(r => isPareto(r)) : finalRankedData;
+        return src.slice(0, 10);
+      }, [finalRankedData, paretoFront, showParetoOnly]);
+
+      const allTableData = useMemo(() => {
+        const enrichedMap = new Map(finalRankedData.map(r => [r.originalIndex, r]));
+        const rows = deduplicatedData.map(row => {
+          const reasons = getFilterReasons(row);
+          const enriched = enrichedMap.get(row.originalIndex);
+          const rb = robustnessData[row.originalIndex] || { totalNeighbors: 0, stableNeighbors: 0, passedNeighbors: 0, robustnessScore: 0 };
+          return {
+            ...(enriched || row),
+            filterReasons: reasons,
+            passed: reasons.length === 0,
+            combinedScore: enriched?.combinedScore || null,
+            robustnessScore: rb.robustnessScore || null,
+            neighborCount: rb.totalNeighbors || 0,
+            stableNeighborCount: rb.stableNeighbors || 0,
+            passedNeighborCount: rb.passedNeighbors || 0,
+          };
+        });
+        if (allTableSort === 'combined')     rows.sort((a, b) => (b.combinedScore||0) - (a.combinedScore||0));
+        else if (allTableSort === 'utility') rows.sort((a, b) => (b.utilityScore||0) - (a.utilityScore||0));
+        else if (allTableSort === 'totalExpectation') rows.sort((a, b) => (b.totalExpectation||0) - (a.totalExpectation||0));
+        return rows;
+      }, [deduplicatedData, finalRankedData, robustnessData, allTableSort, filters]);
+
+      // 诊断信息：统计参数维度和步长
+      const algoStats = useMemo(() => {
+        const firstKey = Object.keys(robustnessData)[0];
+        if (!firstKey) return null;
+        const info = robustnessData[firstKey];
+        const dims = info?.paramDimensions || 0;
+        const boolDims = info?.boolDimensions || 0;
+        const steps = info?.stepSizes || {};
+        return { dims, boolDims, steps };
+      }, [robustnessData]);
+
+      const stats = useMemo(() => ({
+        total: data.length,
+        deduplicated: deduplicatedData.length,
+        filtered: filteredData.length,
+        pareto: paretoFront.length,
+        maxReturn: scoredData.length > 0 ? scoredData.reduce((max, r) => Math.max(max, r.returnPct||0), 0) : 0,
+        maxCalmar: scoredData.length > 0 ? scoredData.reduce((max, r) => Math.max(max, r.calmarRatio||0), 0) : 0,
+        paramDimensions: algoStats?.dims || 0,
+        boolDimensions: algoStats?.boolDims || 0,
+      }), [data.length, deduplicatedData.length, filteredData.length, scoredData.length, paretoFront.length, algoStats]);
+
+      const filterInputs = [
+        { key: 'minTrades',       label: '最小交易次数',      step: 1,    category: 'survival' },
+        { key: 'minProfitFactor', label: '最小盈利因子',      step: 0.1,  category: 'survival' },
+        { key: 'maxSingleLossPct',label: '最大单笔亏损 (%)',  step: 1,    category: 'survival' },
+        { key: 'maxDrawdown',     label: '最大回撤 (%)',       step: 1,    category: 'risk' },
+        { key: 'minSharpe',       label: '最小夏普比率',      step: 0.05, category: 'risk' },
+        { key: 'minSortino',      label: '最小索提诺比率',    step: 0.1,  category: 'risk' },
+        { key: 'minWinRate',      label: '最小胜率 (%)',       step: 1,    category: 'risk' },
+        { key: 'minWinLossRatio', label: '最小盈亏比',        step: 0.1,  category: 'risk' },
+      ];
+
+      // ── 列定义 ───────────────────────────────────────────────────────────
+      const recommendColumns = [
+        { header: '行号', render: (row) => (
+          <span className="flex items-center gap-1">
+            <span className="text-gray-400">{row.originalIndex}</span>
+            {recommendedParameter?.originalIndex === row.originalIndex && <Award className="text-amber-400" size={14} />}
+          </span>
+        )},
+        { header: '综合分', align: 'text-right', render: (row) =>
+          <span className="font-bold text-amber-400">{(row.combinedScore||0).toFixed(3)}</span> },
+        { header: '效用分', align: 'text-right', render: (row) =>
+          <span className="text-purple-400">{(row.utilityScore||0).toFixed(3)}</span> },
+        { header: '稳健性', align: 'text-left', render: (row) =>
+          <RobustnessBar
+            score={row.robustnessScore||0}
+            totalNeighbors={row.neighborCount||0}
+            stableNeighbors={row.stableNeighborCount||0}
+            passedNeighbors={row.passedNeighborCount||0}
+          /> },
+        { header: 'Calmar', align: 'text-right', render: (row) =>
+          <span className="font-bold text-green-400">{(row.calmarRatio||0).toFixed(2)}</span> },
+        { header: '净收益%', align: 'text-right', render: (row) => `${(row.returnPct||0).toFixed(2)}%` },
+        { header: '回撤%', align: 'text-right', render: (row) =>
+          <span className={(row.ddPct||0)>20?'text-red-400':(row.ddPct||0)>15?'text-yellow-400':'text-green-400'}>
+            {(row.ddPct||0).toFixed(2)}%</span> },
+        { header: '胜率', align: 'text-right', render: (row) =>
+          <span className={(row.winRate||0)>=40?'text-green-400':(row.winRate||0)>=30?'text-yellow-400':'text-orange-400'}>
+            {(row.winRate||0).toFixed(1)}%</span> },
+        { header: '盈亏比', align: 'text-right', render: (row) =>
+          <span className={(row.winLossRatio||0)>=3?'text-green-400':'text-yellow-400'}>{(row.winLossRatio||0).toFixed(2)}</span> },
+        { header: '夏普',   align: 'text-right', render: (row) => (row.sharpe||0).toFixed(2) },
+        { header: '索提诺', align: 'text-right', render: (row) => (row.sortino||0).toFixed(2) },
+        { header: 'PF',     align: 'text-right', render: (row) => (row.profitFactor||0).toFixed(2) },
+        { header: '笔数',   align: 'text-right', render: (row) => row.totalTrades||0 },
+        { header: '帕累托', align: 'text-center', render: (row) => isPareto(row) && <Star className="text-purple-400 inline" size={14} /> },
+      ];
+
+      const allDataColumns = [
+        { header: '行号', render: (row) => <span className="text-gray-400">{row.originalIndex}</span> },
+        { header: '综合分', align: 'text-right', render: (row) =>
+          <span className="font-bold text-amber-400">{row.combinedScore!=null?(row.combinedScore).toFixed(3):'-'}</span> },
+        { header: '效用分', align: 'text-right', render: (row) =>
+          <span className="text-purple-400">{row.utilityScore!=null?(row.utilityScore).toFixed(3):'-'}</span> },
+        { header: '稳健性', align: 'text-left', render: (row) =>
+          row.robustnessScore!=null
+            ? <RobustnessBar score={row.robustnessScore} totalNeighbors={row.neighborCount||0} stableNeighbors={row.stableNeighborCount||0} passedNeighbors={row.passedNeighborCount||0} />
+            : <span className="text-gray-600 text-xs">-</span> },
+        { header: 'Calmar', align: 'text-right', render: (row) => (row.calmarRatio||0).toFixed(2) },
+        { header: '净收益%', align: 'text-right', render: (row) => `${(row.returnPct||0).toFixed(2)}%` },
+        { header: '回撤%', align: 'text-right', render: (row) => `${(row.ddPct||0).toFixed(2)}%` },
+        { header: '夏普',   align: 'text-right', render: (row) => (row.sharpe||0).toFixed(2) },
+        { header: '索提诺', align: 'text-right', render: (row) => (row.sortino||0).toFixed(2) },
+        { header: 'PF',     align: 'text-right', render: (row) => (row.profitFactor||0).toFixed(2) },
+        { header: '笔数',   align: 'text-right', render: (row) => row.totalTrades||0 },
+        { header: '筛选状态', align: 'text-left', render: (row) =>
+          row.passed
+            ? <span className="flex items-center gap-1"><CheckCircle className="text-green-400" size={14} /><span className="text-green-400">通过</span></span>
+            : <span className="flex items-start gap-1"><XCircle className="text-red-400 flex-shrink-0 mt-0.5" size={14} /><span className="text-red-400">{row.filterReasons.join('; ')}</span></span>
+        },
+        { header: '帕累托', align: 'text-center', render: (row) =>
+          isPareto(row) ? <span className="text-purple-400 font-bold">✓</span> : <span className="text-gray-600">-</span> },
+      ];
+
+      // ════════════════════════════════════════════════════════════════════
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-6">
+          <div className="max-w-7xl mx-auto">
+
+            {/* 标题 */}
+            <div className="mb-6">
+              <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+                <BarChart3 className="text-blue-400" size={36} />
+                量化回测参数优选面板
+                <span className="text-sm font-normal text-teal-400 bg-teal-500/20 px-2 py-1 rounded-lg border border-teal-400/30">v3 单步邻居法</span>
+              </h1>
+              <p className="text-blue-300 text-sm">
+                <span className="font-bold text-amber-400">【大趋势策略通用评分系统 · 单步邻居稳健性版】</span><br />
+                三层筛选：生存过滤 → 风险过滤 → 趋势评分 &nbsp;|&nbsp;
+                综合分 = 效用分 × [(1-稳健性权重) + 稳健性权重 × 单步邻居稳健性]<br />
+                核心理念：<span className="text-teal-300 font-bold">选"高原"而非"孤峰"</span>——
+                <span className="text-teal-200">ATR追踪倍数14→13结果一样 = 真正稳健</span>
+              </p>
+            </div>
+
+            {/* 上传 */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 mb-6 border border-white/20">
+              <label className="block mb-3 text-sm text-blue-300">上传回测报告（CSV格式）</label>
+              <label className="flex items-center justify-center gap-3 cursor-pointer hover:bg-white/5 p-4 rounded-lg transition-all border-2 border-dashed border-white/30">
+                <Upload className="text-blue-400" size={24} />
+                <span className="text-lg">点击上传文件或拖拽到此处</span>
+                <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+              </label>
+              {uploadLog && (
+                <div className={`mt-3 text-xs p-3 rounded-lg ${uploadLog.includes('✅') ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                  {uploadLog}
+                </div>
+              )}
+            </div>
+
+            {data.length > 0 && (<>
+
+              {/* 统计卡片 */}
+              <div className="grid grid-cols-2 md:grid-cols-7 gap-3 mb-6">
+                <StatCard label="原始组合数"   value={stats.total}             color="blue" />
+                <StatCard label="去重后"        value={stats.deduplicated}      color="cyan" />
+                <StatCard label="通过过滤"      value={stats.filtered}          color="green" />
+                <StatCard label="帕累托最优"    value={stats.pareto}            color="purple" />
+                <StatCard label="最高收益率%"   value={(stats.maxReturn||0).toFixed(1)+'%'} color="amber" />
+                <StatCard label="最高Calmar"    value={(stats.maxCalmar||0).toFixed(2)}     color="rose" />
+                <StatCard label="参数空间维度"  value={(stats.paramDimensions+stats.boolDimensions)+'D'}           color="teal" />
+              </div>
+
+              {/* 稳健性计算进度条 */}
+              {robustnessProgress > 0 && robustnessProgress < 100 && (
+                <div className="bg-teal-500/10 border border-teal-400/30 rounded-xl px-5 py-3 mb-6 flex items-center gap-4">
+                  <Shield className="text-teal-400 flex-shrink-0" size={18} />
+                  <div className="flex-1">
+                    <div className="text-xs text-teal-300 mb-1">正在计算单步邻居稳健性… {robustnessProgress}%（大数据集需要一点时间，页面不会卡死）</div>
+                    <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-teal-400 h-1.5 rounded-full transition-all duration-200" style={{ width: `${robustnessProgress}%` }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 算法说明（可折叠） */}
+              <div className="bg-teal-500/10 backdrop-blur-lg rounded-xl mb-6 border border-teal-400/30 overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between px-6 py-3 hover:bg-teal-500/10 transition-all"
+                  onClick={() => setShowAlgoInfo(!showAlgoInfo)}
+                >
+                  <div className="flex items-center gap-2">
+                    <Info className="text-teal-400" size={18} />
+                    <span className="text-sm font-bold text-teal-300">新算法说明：单步邻居法（Step-Neighbor Sensitivity Analysis）</span>
+                  </div>
+                  <span className="text-teal-400 text-xs">{showAlgoInfo ? '▲ 收起' : '▼ 展开'}</span>
+                </button>
+                {showAlgoInfo && (
+                  <div className="px-6 pb-5 text-xs text-gray-300 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                        <div className="text-red-400 font-bold mb-2">❌ 旧算法的问题</div>
+                        <ul className="space-y-1 text-gray-400">
+                          <li>• 固定RMS阈值0.20在高维空间几乎找不到邻居</li>
+                          <li>• 只在通过筛选的行里找邻居（数量太少）</li>
+                          <li>• 用"效用分相近"衡量邻居质量（混淆了概念）</li>
+                          <li>• <span className="text-red-300">布尔参数变化未计入changedParams，导致"布尔+数值各改1个"被误判为单步邻居</span></li>
+                          <li>• <span className="text-red-300">returnPct≈0时稳定性公式用原始百分比值（可达1800），永远判定为不稳定</span></li>
+                        </ul>
+                      </div>
+                      <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                        <div className="text-teal-400 font-bold mb-2">✅ 新算法的改进</div>
+                        <ul className="space-y-1">
+                          <li>• <span className="text-white">真实单步邻居</span>：推断最小步长，找"仅改变1-2个参数且每个≤1.5步"的行</li>
+                          <li>• <span className="text-white">全量去重数据</span>中找邻居（不限于通过筛选的行）</li>
+                          <li>• <span className="text-white">结果稳定性判断</span>：收益率偏差&lt;15% 且 回撤差&lt;5个百分点</li>
+                          <li>• <span className="text-teal-300 font-bold">v3修复：布尔参数变化也计入changedParams</span>（避免"布尔+数值"被误判为单步）</li>
+                          <li>• <span className="text-teal-300 font-bold">v3修复：returnPct≈0时改为"双方都≈0才稳定"</span>，消除公式除零错误</li>
+                          <li>• <span className="text-teal-300 font-bold">v3.1修复：稳健性 = (稳定率×0.7 + 通过率×0.3) × 置信度（彻底移除中心点密度偏见）</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                    {algoStats && (
+                      <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-400/20">
+                        <div className="text-blue-300 font-bold mb-2">当前数据集参数步长推断结果（数值型{algoStats.dims}个 + 布尔型{algoStats.boolDims}个，共{algoStats.dims+algoStats.boolDims}个可变参数）</div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 font-mono">
+                          {Object.entries(algoStats.steps).map(([key, step]) => (
+                            <div key={key} className="flex justify-between">
+                              <span className="text-gray-400 truncate mr-2">{key}：</span>
+                              <span className="text-blue-300">步长 {isFinite(step) ? step.toFixed(4).replace(/\.?0+$/, '') : '∞'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-gray-500">
+                      稳健性分数条显示格式：<span className="text-white">XX%（稳定邻居数/总邻居数）</span>，鼠标悬停可见详细分解
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 过滤配置 */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 mb-6 border border-white/20">
+                <div className="flex items-center gap-2 mb-4">
+                  <Filter size={20} className="text-blue-400" />
+                  <h2 className="text-lg font-bold">分层过滤配置</h2>
+                </div>
+                <div className="mb-4">
+                  <h3 className="text-sm font-bold text-green-400 mb-2">第一层：生存过滤</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {filterInputs.filter(f=>f.category==='survival').map(({ key, label, step }) => (
+                      <div key={key}>
+                        <label className="text-xs text-blue-300 mb-1 block">{label}</label>
+                        <input type="number" step={step} value={filters[key]}
+                          onChange={(e)=>setFilters({...filters,[key]:Number(e.target.value)})}
+                          className="w-full bg-white/10 border border-green-400/30 rounded px-3 py-2 text-white text-sm" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-yellow-400 mb-2">第二层：风险过滤</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {filterInputs.filter(f=>f.category==='risk').map(({ key, label, step }) => (
+                      <div key={key}>
+                        <label className="text-xs text-blue-300 mb-1 block">{label}</label>
+                        <input type="number" step={step} value={filters[key]}
+                          onChange={(e)=>setFilters({...filters,[key]:Number(e.target.value)})}
+                          className="w-full bg-white/10 border border-yellow-400/30 rounded px-3 py-2 text-white text-sm" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 评分权重 + 稳健性权重 */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 mb-6 border border-white/20">
+                <div className="flex items-center gap-2 mb-4">
+                  <Award size={20} className="text-amber-400" />
+                  <h2 className="text-lg font-bold">评分权重配置</h2>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                  {[
+                    { key:'calmar',       label:'Calmar（回撤调整收益）', border:'border-amber-400/30' },
+                    { key:'sortino',      label:'Sortino（下行风险）',    border:'border-amber-400/30' },
+                    { key:'profitFactor', label:'PF（盈亏结构）',         border:'border-amber-400/30' },
+                    { key:'netReturn',    label:'净收益率（绝对盈利）',   border:'border-green-400/30' },
+                    { key:'sharpe',       label:'Sharpe（辅助）',         border:'border-amber-400/30' },
+                  ].map(({ key, label, border }) => (
+                    <div key={key}>
+                      <label className="text-xs text-blue-300 mb-1 block">{label}</label>
+                      <input type="number" step="0.05" min="0" max="1"
+                        value={scoreWeights[key]||0}
+                        onChange={(e)=>setScoreWeights({...scoreWeights,[key]:Number(e.target.value)})}
+                        className={`w-full bg-white/10 border ${border} rounded px-3 py-2 text-white text-sm`} />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-1 mb-4 text-xs text-gray-400">
+                  权重合计：{(scoreWeights.calmar+scoreWeights.sharpe+scoreWeights.sortino+scoreWeights.profitFactor+(scoreWeights.netReturn||0)).toFixed(2)}
+                  {Math.abs((scoreWeights.calmar+scoreWeights.sharpe+scoreWeights.sortino+scoreWeights.profitFactor+(scoreWeights.netReturn||0))-1.0)>0.01 &&
+                    <span className="text-yellow-400 ml-2">（建议调整为1.0）</span>}
+                </div>
+
+                {/* 稳健性权重 */}
+                <div className="border-t border-white/20 pt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield size={18} className="text-teal-400" />
+                    <h3 className="text-sm font-bold text-teal-300">单步邻居稳健性权重</h3>
+                    <span className="text-xs text-gray-400 ml-2">
+                      — 控制"选高原"与"选高分"之间的平衡。0 = 纯效用分，1 = 稳健性全面主导
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <input type="range" min="0" max="1" step="0.05"
+                      value={robustnessWeight}
+                      onChange={(e)=>setRobustnessWeight(Number(e.target.value))}
+                      className="w-64 accent-teal-400" />
+                    <span className="text-teal-300 font-bold text-lg w-12">{(robustnessWeight*100).toFixed(0)}%</span>
+                    <div className="text-xs text-gray-400">
+                      {robustnessWeight <= 0.1 && '完全按效用分排序，不考虑参数稳健性'}
+                      {robustnessWeight > 0.1 && robustnessWeight <= 0.3 && '轻度稳健性修正（推荐起点）'}
+                      {robustnessWeight > 0.3 && robustnessWeight <= 0.5 && '中度稳健性修正，平衡表现与可靠性'}
+                      {robustnessWeight > 0.5 && '强调稳健性，适合实盘保守要求'}
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    ✅ v3修复：布尔参数变化计入changedParams &nbsp;·&nbsp; returnPct≈0稳定性判断修正 &nbsp;·&nbsp;
+                    搜索池：全量去重数据（{stats.deduplicated}行，不限于通过筛选的{stats.filtered}行）
+                  </div>
+                </div>
+              </div>
+
+              {/* 推荐卡片 + 排行榜 + 全部组合：计算中时半透明遮罩，防止新效用分+旧稳健性的数据幻影 */}
+              <div className={`transition-opacity duration-300 ${robustnessProgress > 0 && robustnessProgress < 100 ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+
+              {/* 推荐参数卡片 */}
+              {recommendedParameter && (
+                <div className="bg-gradient-to-br from-amber-500/20 to-teal-500/20 backdrop-blur-lg rounded-xl p-6 mb-6 border-2 border-amber-400/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Award className="text-amber-400" size={32} />
+                    <div>
+                      <h2 className="text-2xl font-bold text-amber-400">AI智能推荐 - 最优参数</h2>
+                      <p className="text-xs text-blue-300">综合分 = 效用分 × 单步邻居稳健性修正，已选出性能与稳健性最佳平衡的参数组</p>
+                    </div>
+                  </div>
+                  <div className="bg-green-500/10 rounded-lg px-4 py-2 mb-4 border border-green-400/30">
+                    <p className="text-sm text-green-300">
+                      ✅ <strong>此参数处于高原区域</strong>——
+                      调整单个参数一步后结果仍稳定（收益率偏差&lt;15%，回撤差&lt;5pp），实盘可靠性高
+                    </p>
+                  </div>
+
+                  {/* 核心指标 */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="bg-black/30 rounded-lg p-4 border border-white/20">
+                      <div className="text-xs text-gray-400 mb-2">综合评分</div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-blue-300">CSV行号：</span>
+                        <span className="text-2xl font-bold">#{recommendedParameter.originalIndex}</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-blue-300">综合分：</span>
+                        <span className="text-xl font-bold text-amber-400">{(recommendedParameter.combinedScore||0).toFixed(3)}</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-blue-300">效用分：</span>
+                        <span className="text-lg font-bold text-purple-400">{(recommendedParameter.utilityScore||0).toFixed(3)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-blue-300">稳定性系数：</span>
+                        <span className="text-lg font-bold text-blue-400">{(recommendedParameter.stabilityCoeff||0).toFixed(2)}x</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-black/30 rounded-lg p-4 border border-white/20">
+                      <div className="text-xs text-gray-400 mb-2">单步邻居稳健性</div>
+                      <div className="mb-3">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-teal-300">稳健性分数：</span>
+                          <span className="text-xl font-bold text-teal-400">{((recommendedParameter.robustnessScore||0)*100).toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
+                          <div className="bg-teal-400 h-3 rounded-full transition-all"
+                            style={{ width: `${(recommendedParameter.robustnessScore||0)*100}%` }} />
+                        </div>
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">总邻居（单步内）：</span>
+                          <span className="text-white font-bold">{recommendedParameter.neighborCount||0} 组</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">结果稳定邻居：</span>
+                          <span className="text-teal-300 font-bold">{recommendedParameter.stableNeighborCount||0} 组</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">通过筛选邻居：</span>
+                          <span className="text-green-300 font-bold">{recommendedParameter.passedNeighborCount||0} 组</span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        仅改变1~2个参数×1步，收益率偏差&lt;15%且回撤差&lt;5pp才算稳定邻居
+                      </div>
+                    </div>
+
+                    <div className="bg-black/30 rounded-lg p-4 border border-white/20">
+                      <div className="text-xs text-gray-400 mb-2">绩效核心</div>
+                      <div className="space-y-1.5">
+                        {[
+                          ['Calmar比率', (recommendedParameter.calmarRatio||0).toFixed(2), 'text-green-400'],
+                          ['最大回撤',   (recommendedParameter.ddPct||0).toFixed(2)+'%', (recommendedParameter.ddPct||0)>15?'text-yellow-400':'text-green-400'],
+                          ['净收益率',   (recommendedParameter.returnPct||0).toFixed(2)+'%', 'text-green-400'],
+                          ['盈利因子',   (recommendedParameter.profitFactor||0).toFixed(2), 'text-white'],
+                          ['索提诺',     (recommendedParameter.sortino||0).toFixed(2), 'text-white'],
+                          ['胜率',       (recommendedParameter.winRate||0).toFixed(1)+'%', 'text-white'],
+                        ].map(([label, val, cls]) => (
+                          <div key={label} className="flex justify-between items-center">
+                            <span className="text-sm text-blue-300">{label}：</span>
+                            <span className={`font-bold ${cls}`}>{val}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 凯利仓位 + 辅助指标 */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-xs">
+                    <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                      <div className="text-gray-400 mb-1">凯利分数</div>
+                      <div className={`text-lg font-bold ${(recommendedParameter.kellyFraction||0)>0?'text-purple-400':'text-red-400'}`}>
+                        {(recommendedParameter.kellyFraction||0).toFixed(3)}
+                      </div>
+                    </div>
+                    <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                      <div className="text-gray-400 mb-1">建议仓位（Kelly/2）</div>
+                      <div className="text-lg font-bold text-amber-400">
+                        {(Math.max(0,recommendedParameter.kellyFraction||0)*50).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                      <div className="text-gray-400 mb-1">风险靠边惩罚</div>
+                      <div className="text-lg font-bold text-orange-400">
+                        -{(recommendedParameter.riskProximityPenalty||0).toFixed(3)}
+                      </div>
+                    </div>
+                    <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                      <div className="text-gray-400 mb-1">样本量</div>
+                      <div className="text-lg font-bold text-green-400">{recommendedParameter.totalTrades||0} 笔</div>
+                    </div>
+                  </div>
+
+                  {/* 多空分项 */}
+                  {(recommendedParameter.totalTradesLong > 0 || recommendedParameter.totalTradesShort > 0) && (
+                    <div className="bg-black/30 rounded-lg p-4 border border-white/20 mb-4">
+                      <div className="text-xs text-gray-400 mb-2">多空分项盈亏（牛熊双向策略）</div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-green-300">做多 P&L：</span>
+                          <span className={`text-lg font-bold ${(recommendedParameter.netPnlLong||0)>=0?'text-green-400':'text-red-400'}`}>
+                            {formatNumber(recommendedParameter.netPnlLong||0)} ({(recommendedParameter.netPnlPctLong||0).toFixed(1)}%)
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-red-300">做空 P&L：</span>
+                          <span className={`text-lg font-bold ${(recommendedParameter.netPnlShort||0)>=0?'text-green-400':'text-red-400'}`}>
+                            {formatNumber(recommendedParameter.netPnlShort||0)} ({(recommendedParameter.netPnlPctShort||0).toFixed(1)}%)
+                          </span>
+                        </div>
+                      </div>
+                      {(() => {
+                        const l=recommendedParameter.netPnlLong||0, s=recommendedParameter.netPnlShort||0;
+                        const tot=Math.abs(l)+Math.abs(s);
+                        if (tot <= 0) return null;
+                        const lp=(Math.abs(l)/tot*100).toFixed(0), sp=(Math.abs(s)/tot*100).toFixed(0);
+                        return (
+                          <div className="mt-2 text-xs">
+                            <div className="flex h-2 rounded-full overflow-hidden">
+                              <div className={l>=0?'bg-green-500':'bg-green-800'} style={{width:`${lp}%`}} />
+                              <div className={s>=0?'bg-red-500':'bg-red-800'}   style={{width:`${sp}%`}} />
+                            </div>
+                            <div className="flex justify-between mt-1 text-gray-400">
+                              <span>多头 {l>=0?'+':''}{lp}%</span>
+                              <span>空头 {s>=0?'+':''}{sp}%</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* 策略参数 */}
+                  {recommendedParameter.strategyParams && Object.keys(recommendedParameter.strategyParams).length > 0 && (
+                    <div className="bg-blue-500/10 rounded-lg p-4 border border-cyan-400/30 mb-4">
+                      <div className="text-xs text-cyan-300 mb-2 font-bold">推荐策略参数（可直接应用到 TradingView）</div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-xs">
+                        {Object.entries(recommendedParameter.strategyParams)
+                          .filter(([_,v]) => v!==null && v!==undefined && v!=='' && !(typeof v==='number'&&isNaN(v)))
+                          .map(([key,value]) => (
+                            <div key={key} className="flex justify-between items-center py-0.5 border-b border-white/5">
+                              <span className="text-gray-400 truncate mr-2">{key}：</span>
+                              <span className="font-mono text-white font-bold">{typeof value==='boolean'?(value?'✓':'✗'):value}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 flex-wrap text-sm">
+                    {isPareto(recommendedParameter) && (
+                      <span className="flex items-center gap-1 px-3 py-1 bg-purple-500/30 rounded-full border border-purple-400/50">
+                        <Star className="text-purple-400" size={14} /><span className="text-purple-300">帕累托最优</span>
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 px-3 py-1 bg-teal-500/30 rounded-full border border-teal-400/50">
+                      <Shield className="text-teal-400" size={14} />
+                      <span className="text-teal-300">
+                        稳健性 {((recommendedParameter.robustnessScore||0)*100).toFixed(0)}%・
+                        {recommendedParameter.stableNeighborCount||0}/{recommendedParameter.neighborCount||0}稳定邻居
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-1 px-3 py-1 bg-green-500/30 rounded-full border border-green-400/50">
+                      <CheckCircle className="text-green-400" size={14} />
+                      <span className="text-green-300">胜率 {(recommendedParameter.winRate||0).toFixed(1)}%</span>
+                    </span>
+                    <span className="px-3 py-1 bg-blue-500/30 rounded-full border border-blue-400/50 text-blue-300">
+                      盈亏比 {(recommendedParameter.winLossRatio||0).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 排行榜 */}
+              <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 mb-6 border border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-bold flex items-center gap-2 text-gray-300">
+                      <BarChart3 className="text-gray-400" size={20} />
+                      综合排行榜 Top 10
+                    </h2>
+                    <p className="text-xs text-orange-300 mt-1">⚠️ 已按综合分（效用分×单步邻居稳健性修正）排序，建议使用上方推荐参数</p>
+                  </div>
+                  <label className="flex items-center gap-2 px-3 py-1 text-xs bg-white/10 rounded-full cursor-pointer hover:bg-white/20">
+                    <input type="checkbox" checked={showParetoOnly} onChange={(e)=>setShowParetoOnly(e.target.checked)} className="w-3 h-3" />
+                    仅帕累托
+                  </label>
+                </div>
+                <DataTable data={displayData} columns={recommendColumns}
+                  rowClassName={(row) => {
+                    const isRec = recommendedParameter?.originalIndex === row.originalIndex;
+                    return `border-b border-white/10 hover:bg-white/5 ${isRec?'bg-amber-500/20 border-l-4 border-l-amber-400':isPareto(row)?'bg-purple-500/10':''}`;
+                  }} />
+              </div>
+
+              {/* 全部组合 */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-bold">全部组合明细</h2>
+                    <p className="text-xs text-gray-400 mt-1">包含所有参数组合及未通过筛选的具体原因（最多显示 500 行，共 {allTableData.length} 行）</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {[{key:'combined',label:'综合分'},{key:'utility',label:'效用分'},{key:'original',label:'原始顺序'},{key:'totalExpectation',label:'总期望值'}].map(({key,label})=>(
+                      <button key={key} onClick={()=>setAllTableSort(key)}
+                        className={`px-3 py-1 text-xs rounded-full transition-all ${allTableSort===key?'bg-blue-500 text-white':'bg-white/10 hover:bg-white/20'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <DataTable data={allTableData.slice(0, 500)} columns={allDataColumns}
+                  rowClassName={(row,idx)=>{
+                    const isRec = recommendedParameter?.originalIndex === row.originalIndex;
+                    return `border-b border-white/10 hover:bg-white/5 ${isRec?'bg-amber-500/20 border-l-4 border-l-amber-400':idx%2===0?'bg-black/20':''}`;
+                  }} />
+              </div>
+
+              </div>{/* 遮罩 div 闭合 */}
+
+            </>)}
+
+            {data.length === 0 && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 border border-white/20 text-center">
+                <Upload className="mx-auto mb-4 text-blue-400/50" size={64} />
+                <h3 className="text-xl font-bold mb-2">准备好开始分析了吗？</h3>
+                <p className="text-blue-300 text-sm">上传你的 TradingView 回测报告，让系统自动为你找出最优且稳健的参数组合</p>
+                <p className="text-gray-500 text-xs mt-2">v2版本：单步邻居法精准识别"参数附近结果也好"的高原区域</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<TradingStrategyAnalyzer />);
+  </script>
+</body>
+</html>
