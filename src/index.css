@@ -3,72 +3,66 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+/* 引入宋体/楷体风格的 Google 字体 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500&display=swap');
+
 @custom-variant dark (&:is(.dark *));
 
 /* ═══════════════════════════════════════════════
-   INSTITUTIONAL QUANT TERMINAL — 全局样式
-   Color System:
-     Main BG:        #0f172a (Slate 900)
-     Card BG:        #1e293b (Slate 800)
-     Border:         #334155 (Slate 700)
-     Green/Profit:   #10b981 (Emerald 500)
-     Red/Loss:       #ef4444 (Red 500)
-     Text Primary:   #f8fafc (Slate 50)
-     Text Secondary: #94a3b8 (Slate 400)
+   禅意量化终端 · 宣纸水墨风格
+   ─────────────────────────────────────────────
+   主色：宣纸米白  #f4efe6
+   卡片：绢白      #faf7f2
+   边框：淡墨      #c8bfae
+   墨绿（涨）：    #2d6a4f
+   朱红（跌）：    #b5432a
+   金色（重要）：  #8b6914
+   墨色文字主：    #2c2416
+   墨色文字次：    #7a6e5f
+   竹青装饰：      #4a7c59
 ═══════════════════════════════════════════════ */
 
 :root {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  line-height: 1.5;
+  font-family: 'Noto Serif SC', 'STSong', 'SimSun', Georgia, serif;
+  line-height: 1.7;
   font-weight: 400;
-  color-scheme: dark;
-  color: #f8fafc;
-  background-color: #0f172a;
+  color-scheme: light;
+  color: #2c2416;
+  background-color: #f4efe6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 
-  --color-bg:        #0f172a;
-  --color-card:      #1e293b;
-  --color-green:     #10b981;
-  --color-red:       #ef4444;
-  --color-gold:      #f59e0b;
-  --color-text:      #f8fafc;
-  --color-muted:     #94a3b8;
-  --border-color:    #334155;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* 禅意色彩系统 */
+  --xuan-paper:   #f4efe6;   /* 宣纸底色 */
+  --silk-white:   #faf7f2;   /* 绢白卡片 */
+  --ink-border:   #c8bfae;   /* 淡墨边框 */
+  --ink-dark:     #2c2416;   /* 浓墨主文字 */
+  --ink-mid:      #7a6e5f;   /* 中墨次文字 */
+  --ink-light:    #b8ae9e;   /* 淡墨装饰 */
+  --mo-green:     #2d6a4f;   /* 墨绿（盈利） */
+  --mo-green-lt:  #52a880;   /* 浅墨绿 */
+  --zhu-red:      #b5432a;   /* 朱红（亏损） */
+  --gold:         #8b6914;   /* 金色（重要指标） */
+  --gold-lt:      #c49a1e;   /* 浅金 */
+  --bamboo:       #4a7c59;   /* 竹青装饰 */
+  --lotus-pink:   #d4a5a5;   /* 莲花粉 */
+
+  /* shadcn 变量覆盖 */
+  --background:           #f4efe6;
+  --foreground:           #2c2416;
+  --card:                 #faf7f2;
+  --card-foreground:      #2c2416;
+  --border:               #c8bfae;
+  --input:                #e8e0d4;
+  --primary:              #2d6a4f;
+  --primary-foreground:   #faf7f2;
+  --muted:                #ede8e0;
+  --muted-foreground:     #7a6e5f;
+  --accent:               #e8e0d4;
+  --accent-foreground:    #2c2416;
+  --ring:                 #4a7c59;
+  --radius:               0.5rem;
 }
 
 * { box-sizing: border-box; }
@@ -77,35 +71,84 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: var(--color-bg);
+  background-color: var(--xuan-paper);
+  /* 宣纸纹理：极细的纸纤维感 */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
 }
 
-/* ── Typography Override Classes ── */
-.font-mono-tech { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-/* Replace legacy font names mapped previously */
-.font-orbitron  { font-family: inherit; font-weight: 700; }
-.font-rajdhani  { font-family: inherit; }
+/* ── 字体工具类 ── */
+.font-serif-cn  { font-family: 'Noto Serif SC', 'STSong', 'SimSun', serif; }
+.font-sans-cn   { font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+.font-mono-tech { font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
+/* 兼容旧类名 */
+.font-orbitron  { font-family: 'Noto Serif SC', serif; font-weight: 700; letter-spacing: 0.05em; }
+.font-rajdhani  { font-family: 'Noto Sans SC', sans-serif; }
 
-/* ── Legacy Neon Fallbacks (Overrides to remove glowing entirely) ── */
-.neon-cyan, .neon-green, .neon-red, .neon-gold { text-shadow: none !important; }
-.neon-cyan { color: #38bdf8; }
-.neon-green { color: var(--color-green); }
-.neon-red { color: var(--color-red); }
-.neon-gold { color: var(--color-gold); }
-
-.glow-cyan, .glow-green, .glow-gold { box-shadow: none !important; }
-
-/* ── Institutional Cards ── */
-.tech-card {
+/* ── 禅意卡片 ── */
+.zen-card {
+  background: var(--silk-white);
+  border: 1px solid var(--ink-border);
+  border-radius: 4px;
   position: relative;
-  background: var(--color-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  transition: border-color 0.2s;
-  overflow: hidden;
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+.zen-card:hover {
+  border-color: var(--bamboo);
+  box-shadow: 0 4px 20px rgba(74,124,89,0.08);
+}
+/* 与 tech-card 兼容 */
+.tech-card {
+  background: var(--silk-white);
+  border: 1px solid var(--ink-border);
+  border-radius: 4px;
+  position: relative;
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+.tech-card:hover {
+  border-color: var(--bamboo);
+  box-shadow: 0 4px 20px rgba(74,124,89,0.08);
+}
+.tech-card::before, .tech-card::after { display: none; }
+
+/* ── 毛笔横线分隔 ── */
+.ink-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--ink-border) 20%, var(--ink-border) 80%, transparent 100%);
+  margin: 1.5rem 0;
+  position: relative;
+}
+.ink-divider::after {
+  content: '◆';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  color: var(--ink-light);
+  background: var(--silk-white);
+  padding: 0 6px;
+}
+/* 兼容 */
+.cyber-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--ink-border) 20%, var(--ink-border) 80%, transparent 100%);
+  margin: 1.5rem 0;
+  position: relative;
+}
+.cyber-divider::after {
+  content: '◆';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  color: var(--ink-light);
+  background: var(--silk-white);
+  padding: 0 6px;
 }
 
-/* ── Ticker tape (Retained logic but clean style) ── */
+/* ── 莲花跑马灯 ── */
 @keyframes ticker-scroll {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -113,162 +156,116 @@ body {
 .ticker-wrap {
   overflow: hidden;
   white-space: nowrap;
-  background: #0b1120;
-  border-bottom: 1px solid var(--border-color);
+  background: #ede8df;
+  border-bottom: 1px solid var(--ink-border);
 }
 .ticker-inner {
   display: inline-block;
-  animation: ticker-scroll 45s linear infinite;
+  animation: ticker-scroll 50s linear infinite;
 }
 .ticker-inner:hover { animation-play-state: paused; }
 
-/* ── Status dot (Clean pulsing) ── */
+/* ── 状态点（荷叶绿脉冲） ── */
 @keyframes status-pulse {
-  0%, 100% { transform: scale(1);   opacity: 1; }
-  50%       { transform: scale(1.1); opacity: 0.8; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(1.2); }
 }
 .status-dot {
   display: inline-block;
-  width: 8px; height: 8px;
+  width: 7px; height: 7px;
   border-radius: 50%;
-  background: var(--color-green);
-  animation: status-pulse 2s ease-in-out infinite;
+  background: var(--mo-green);
+  animation: status-pulse 2.5s ease-in-out infinite;
 }
 
-/* ── Fade Animations (Kept subtle for UX) ── */
+/* ── 淡入动画 ── */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.fade-in-up   { animation: fadeInUp 0.4s ease forwards; }
+.fade-in-up { animation: fadeInUp 0.5s ease forwards; }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--color-bg); }
-::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #64748b; }
+/* ── 滚动条（竹节风格） ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--xuan-paper); }
+::-webkit-scrollbar-thumb { background: var(--ink-border); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bamboo); }
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
 
-::selection { background: #3b82f6; color: #fff; }
+::selection { background: rgba(74,124,89,0.2); color: var(--ink-dark); }
 
-/* ── Gradient text removed - fallback to solid ── */
-.gradient-text-cyber { color: #f8fafc; font-weight: bold; }
-.gradient-text-neon { color: #f8fafc; font-weight: bold; }
+/* ── 文字色彩工具 ── */
+.text-profit   { color: var(--mo-green); }
+.text-loss     { color: var(--zhu-red); }
+.text-gold     { color: var(--gold); }
+.text-ink      { color: var(--ink-dark); }
+.text-ink-mid  { color: var(--ink-mid); }
 
-/* ── Progress bar (Solid flat) ── */
+/* 兼容旧霓虹类 → 改为水墨色 */
+.neon-cyan  { color: var(--bamboo); text-shadow: none; }
+.neon-green { color: var(--mo-green); text-shadow: none; }
+.neon-red   { color: var(--zhu-red); text-shadow: none; }
+.neon-gold  { color: var(--gold); text-shadow: none; }
+.glow-cyan, .glow-green, .glow-gold { box-shadow: none; }
+
+/* ── 渐变文字 → 水墨渐变 ── */
+.gradient-text-cyber {
+  background: linear-gradient(135deg, var(--mo-green), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-neon {
+  background: linear-gradient(90deg, var(--mo-green), var(--bamboo));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── 进度条（墨绿） ── */
 .neon-progress {
-  background-color: #3b82f6; /* Standard Blue */
+  background: linear-gradient(90deg, var(--mo-green), var(--mo-green-lt));
   box-shadow: none;
 }
 
-/* ── Minimal divider ── */
-.cyber-divider {
-  height: 1px;
-  background: var(--border-color);
-  margin: 1.5rem 0;
-}
-
-/* ── Input fields (Institutional flat) ── */
+/* ── 数字输入框 ── */
 input[type="number"] {
-  background: #0f172a;
-  border: 1px solid #475569;
-  color: #f8fafc;
+  background: var(--xuan-paper);
+  border: 1px solid var(--ink-border);
+  color: var(--ink-dark);
   border-radius: 4px;
-  padding: 6px 10px;
-  font-family: inherit;
+  padding: 5px 10px;
+  font-family: ui-monospace, monospace;
   font-size: 0.875rem;
-  transition: all 0.2s;
+  transition: border-color 0.2s;
 }
 input[type="number"]:focus {
   outline: none;
-  border-color: #3b82f6;
-  background: #1e293b;
+  border-color: var(--bamboo);
+  background: var(--silk-white);
 }
+
+/* ── 表格行悬停 ── */
+.tr-hover:hover { background: rgba(74,124,89,0.04) !important; }
+
+/* ── shadcn 覆盖，保持宣纸风格 ── */
+[class*="border-zinc"] { border-color: var(--ink-border) !important; }
+[class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-background"] {
+  background-color: var(--silk-white) !important;
+}
+[class*="text-zinc-400"] { color: var(--ink-mid) !important; }
+[class*="text-zinc-100"] { color: var(--ink-dark) !important; }
+[class*="hover:bg-zinc-800"] { --tw-bg-opacity: 1; }
 
 @theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
+  --font-sans: 'Noto Sans SC', 'Geist Variable', sans-serif;
   --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-ring: var(--ring);
+  --radius: var(--radius);
 }

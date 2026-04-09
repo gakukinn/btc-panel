@@ -420,15 +420,15 @@ const AnalysisDashboard = () => {
 
   const recommendColumns = [
     { header: '行号', render: (row) => (
-      <span className="flex items-center gap-1 font-mono text-slate-400">
+      <span className="flex items-center gap-1 font-mono-tech" style={{ color: 'var(--ink-mid)' }}>
         <span>{row.originalIndex}</span>
-        {recommendedParameter?.originalIndex === row.originalIndex && <Award className="text-amber-500" size={14} />}
+        {recommendedParameter?.originalIndex === row.originalIndex && <Award style={{ color: 'var(--gold)' }} size={14} />}
       </span>
     )},
     { header: '综合分', align: 'text-right', render: (row) =>
-      <span className="font-bold text-amber-500">{(row.combinedScore||0).toFixed(3)}</span> },
+      <span className="font-bold" style={{ color: 'var(--gold)' }}>{(row.combinedScore||0).toFixed(3)}</span> },
     { header: '效用分', align: 'text-right', render: (row) =>
-      <span className="text-purple-400">{(row.utilityScore||0).toFixed(3)}</span> },
+      <span style={{ color: 'var(--bamboo)' }}>{(row.utilityScore||0).toFixed(3)}</span> },
     { header: '稳健性', align: 'text-left', render: (row) =>
       <RobustnessBar
         score={row.robustnessScore||0}
@@ -437,38 +437,40 @@ const AnalysisDashboard = () => {
         passedNeighbors={row.passedNeighborCount||0}
       /> },
     { header: 'Calmar', align: 'text-right', render: (row) =>
-      <span className="font-bold text-emerald-500">{(row.calmarRatio||0).toFixed(2)}</span> },
-    { header: '净收益%', align: 'text-right', render: (row) => `${(row.returnPct||0).toFixed(2)}%` },
+      <span className="font-bold" style={{ color: 'var(--mo-green)' }}>{(row.calmarRatio||0).toFixed(2)}</span> },
+    { header: '净收益%', align: 'text-right', render: (row) =>
+      <span style={{ color: (row.returnPct||0) >= 0 ? 'var(--mo-green)' : 'var(--zhu-red)' }}>{(row.returnPct||0).toFixed(2)}%</span> },
     { header: '回撤%', align: 'text-right', render: (row) =>
-      <span className={(row.ddPct||0)>20?'text-red-500':(row.ddPct||0)>15?'text-amber-500':'text-emerald-500'}>
+      <span style={{ color: (row.ddPct||0)>20 ? 'var(--zhu-red)' : (row.ddPct||0)>15 ? 'var(--gold-lt)' : 'var(--mo-green)' }}>
         {(row.ddPct||0).toFixed(2)}%</span> },
     { header: '胜率', align: 'text-right', render: (row) =>
-      <span className={(row.winRate||0)>=40?'text-emerald-500':(row.winRate||0)>=30?'text-amber-500':'text-orange-500'}>
+      <span style={{ color: (row.winRate||0)>=40 ? 'var(--mo-green)' : (row.winRate||0)>=30 ? 'var(--gold-lt)' : 'var(--zhu-red)' }}>
         {(row.winRate||0).toFixed(1)}%</span> },
     { header: '盈亏比', align: 'text-right', render: (row) =>
-      <span className={(row.winLossRatio||0)>=3?'text-emerald-500':'text-amber-500'}>{(row.winLossRatio||0).toFixed(2)}</span> },
-    { header: '笔数', align: 'text-right', render: (row) => row.totalTrades||0 },
-    { header: '帕累托', align: 'text-center', render: (row) => isPareto(row) && <Star className="text-purple-500 inline" size={14} /> },
+      <span style={{ color: (row.winLossRatio||0)>=3 ? 'var(--mo-green)' : 'var(--gold-lt)' }}>{(row.winLossRatio||0).toFixed(2)}</span> },
+    { header: '笔数', align: 'text-right', render: (row) => <span style={{ color: 'var(--ink-dark)' }}>{row.totalTrades||0}</span> },
+    { header: '帕累托', align: 'text-center', render: (row) => isPareto(row) && <Star style={{ color: 'var(--gold)' }} className="inline" size={14} /> },
   ];
 
   const allDataColumns = [
-    { header: '行号', render: (row) => <span className="text-slate-400 font-mono">{row.originalIndex}</span> },
+    { header: '行号', render: (row) => <span className="font-mono-tech" style={{ color: 'var(--ink-mid)' }}>{row.originalIndex}</span> },
     { header: '综合分', align: 'text-right', render: (row) =>
-      <span className="font-bold text-amber-500">{row.combinedScore!=null?(row.combinedScore).toFixed(3):'-'}</span> },
+      <span className="font-bold" style={{ color: 'var(--gold)' }}>{row.combinedScore!=null?(row.combinedScore).toFixed(3):'-'}</span> },
     { header: '效用分', align: 'text-right', render: (row) =>
-      <span className="text-purple-400">{row.utilityScore!=null?(row.utilityScore).toFixed(3):'-'}</span> },
+      <span style={{ color: 'var(--bamboo)' }}>{row.utilityScore!=null?(row.utilityScore).toFixed(3):'-'}</span> },
     { header: '稳健性', align: 'text-left', render: (row) =>
       row.robustnessScore!=null
         ? <RobustnessBar score={row.robustnessScore} totalNeighbors={row.neighborCount||0} stableNeighbors={row.stableNeighborCount||0} passedNeighbors={row.passedNeighborCount||0} />
-        : <span className="text-slate-600">-</span> },
-    { header: 'Calmar', align: 'text-right', render: (row) => (row.calmarRatio||0).toFixed(2) },
-    { header: '净收益%', align: 'text-right', render: (row) => `${(row.returnPct||0).toFixed(2)}%` },
-    { header: '回撤%', align: 'text-right', render: (row) => `${(row.ddPct||0).toFixed(2)}%` },
-    { header: '笔数', align: 'text-right', render: (row) => row.totalTrades||0 },
+        : <span style={{ color: 'var(--ink-border)' }}>-</span> },
+    { header: 'Calmar', align: 'text-right', render: (row) => <span style={{ color: 'var(--ink-dark)' }}>{(row.calmarRatio||0).toFixed(2)}</span> },
+    { header: '净收益%', align: 'text-right', render: (row) =>
+      <span style={{ color: (row.returnPct||0) >= 0 ? 'var(--mo-green)' : 'var(--zhu-red)' }}>{(row.returnPct||0).toFixed(2)}%</span> },
+    { header: '回撤%', align: 'text-right', render: (row) => <span style={{ color: 'var(--ink-dark)' }}>{(row.ddPct||0).toFixed(2)}%</span> },
+    { header: '笔数', align: 'text-right', render: (row) => <span style={{ color: 'var(--ink-dark)' }}>{row.totalTrades||0}</span> },
     { header: '筛选状态', align: 'text-left', render: (row) =>
       row.passed
-        ? <span className="flex items-center gap-1"><CheckCircle className="text-emerald-500" size={12} /><span className="text-emerald-500 font-medium">通过</span></span>
-        : <span className="flex items-start gap-1"><XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={12} /><span className="text-red-500 text-xs leading-tight">{row.filterReasons.join('; ')}</span></span>
+        ? <span className="flex items-center gap-1"><CheckCircle style={{ color: 'var(--mo-green)' }} size={12} /><span className="font-medium" style={{ color: 'var(--mo-green)' }}>通过</span></span>
+        : <span className="flex items-start gap-1"><XCircle style={{ color: 'var(--zhu-red)' }} className="flex-shrink-0 mt-0.5" size={12} /><span className="text-xs leading-tight" style={{ color: 'var(--zhu-red)' }}>{row.filterReasons.join('; ')}</span></span>
     },
   ];
 
@@ -519,189 +521,216 @@ const AnalysisDashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen text-slate-100 bg-slate-900">
+    <div className="min-h-screen" style={{ color: 'var(--ink-dark)', background: 'var(--xuan-paper)' }}>
 
-      {/* ── Ticker Tape ── */}
-      <div className="ticker-wrap py-2 border-b border-slate-800 bg-slate-800/30">
+      {/* ── 行情跑马灯 ── */}
+      <div className="ticker-wrap py-1.5">
         <div className="ticker-inner">
           {[...tickerItems, ...tickerItems].map((item, i) => (
-            <span key={i} className="inline-flex items-center gap-2 mx-6 text-xs text-slate-300 font-mono-tech">
-              <span className="text-slate-500">{item.sym}</span>
-              <span className="text-slate-100 font-bold">{item.val}</span>
-              <span className={item.up ? 'text-emerald-500' : 'text-red-500'}>
+            <span key={i} className="inline-flex items-center gap-2 mx-8 text-xs font-mono-tech">
+              <span style={{ color: 'var(--ink-mid)' }}>{item.sym}</span>
+              <span className="font-bold" style={{ color: 'var(--ink-dark)' }}>{item.val}</span>
+              <span style={{ color: item.up ? 'var(--mo-green)' : 'var(--zhu-red)' }}>
                 {item.chg}
               </span>
-              <span className="text-slate-700 ml-6">◆</span>
+              <span style={{ color: 'var(--ink-border)', marginLeft: '1.5rem' }}>◆</span>
             </span>
           ))}
         </div>
       </div>
 
-      {/* ── Top Nav Bar ── */}
-      <div className="flex items-center justify-between px-6 py-3 bg-slate-900 border-b border-slate-800">
+      {/* ── 顶部导航 ── */}
+      <div
+        className="flex items-center justify-between px-6 py-3"
+        style={{ borderBottom: '1px solid var(--ink-border)', background: 'var(--silk-white)' }}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center border border-slate-700">
-            <Zap size={16} className="text-blue-500" />
+          <div
+            className="w-8 h-8 rounded flex items-center justify-center"
+            style={{ border: '1px solid var(--ink-border)', background: 'var(--xuan-paper)' }}
+          >
+            <span style={{ color: 'var(--mo-green)', fontSize: '14px' }}>禅</span>
           </div>
-          <span className="text-sm font-bold tracking-wider text-slate-100">
-            NEXUS QUANT
+          <span className="font-serif-cn font-bold tracking-wider" style={{ color: 'var(--ink-dark)', fontSize: '15px' }}>
+            禅道量化
           </span>
-          <span className="text-xs text-slate-500 hidden md:block">
-            // BTC 量化回测智能评分系统
+          <span className="text-xs hidden md:block" style={{ color: 'var(--ink-mid)' }}>
+            · BTC 量化回测智能评分系统
           </span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-mono-tech">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>SYSTEM ONLINE</span>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-2 px-3 py-1 rounded text-xs font-sans-cn"
+            style={{ border: '1px solid var(--mo-green)', color: 'var(--mo-green)', background: 'rgba(45,106,79,0.06)' }}
+          >
+            <span className="status-dot" />
+            <span>系统运行中</span>
           </div>
-          <div className="px-3 py-1.5 rounded text-xs bg-slate-800 border border-slate-700 text-slate-300 font-mono-tech">
+          <div
+            className="px-3 py-1 rounded text-xs font-mono-tech"
+            style={{ border: '1px solid var(--ink-border)', color: 'var(--ink-mid)', background: 'var(--xuan-paper)' }}
+          >
             {clock}
-          </div>
-          <div className="px-3 py-1.5 rounded text-xs hidden md:block bg-slate-800 border border-slate-700 text-slate-400 font-mono-tech">
-            ENGINE v3.2
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8 md:px-6">
-        {/* ── Header ── */}
+        {/* ── 标题区 ── */}
         <header className="mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded mb-4 text-xs font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 font-mono-tech">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1 rounded mb-4 text-xs font-sans-cn"
+            style={{ border: '1px solid var(--bamboo)', color: 'var(--bamboo)', background: 'rgba(74,124,89,0.06)' }}
+          >
             <Activity size={12} />
-            TradingView Assistant Pro // Stability-First
+            稳健优先 · TradingView 策略评分引擎
           </div>
 
-          <h1 className="mb-3 font-bold text-4xl text-slate-100">
+          <h1 className="mb-3 font-serif-cn font-bold" style={{ fontSize: '2rem', color: 'var(--ink-dark)' }}>
             量化回测评分面板
           </h1>
 
-          <p className="max-w-2xl text-sm text-slate-400 leading-relaxed">
-            基于<span className="text-emerald-400 mx-1">单步邻居法</span>
+          <p className="max-w-2xl text-sm leading-relaxed font-sans-cn" style={{ color: 'var(--ink-mid)' }}>
+            基于<span className="mx-1 font-medium" style={{ color: 'var(--mo-green)' }}>单步邻居法</span>
             的稳健性评估系统，助你从成千上万个回测组合中锁定真正具备实盘价值的
-            <span className="text-amber-400 mx-1">「稳健高原」</span>。
+            <span className="mx-1 font-medium" style={{ color: 'var(--gold)' }}>「稳健高原」</span>。
           </p>
         </header>
 
-        {/* ── Upload Area ── */}
+        {/* ── 数据上传 ── */}
         <section className="mb-8">
-          <div className="bg-slate-800 rounded border border-slate-700 p-6">
-            <h3 className="flex items-center gap-2 mb-4 text-sm font-semibold text-slate-300">
-              <Upload size={16} />
-              数据上传
+          <div className="zen-card p-6">
+            <h3 className="flex items-center gap-2 mb-4 text-sm font-sans-cn font-medium" style={{ color: 'var(--ink-dark)' }}>
+              <Upload size={16} style={{ color: 'var(--bamboo)' }} />
+              上传回测数据
             </h3>
-            <label className="flex flex-col items-center justify-center gap-3 cursor-pointer p-8 rounded border-2 border-dashed border-slate-600 bg-slate-900/50 hover:bg-slate-700/50 hover:border-slate-500 transition-all">
-              <div className="p-3 rounded-full bg-slate-800 border border-slate-700 text-slate-400">
+            <label
+              className="flex flex-col items-center justify-center gap-3 cursor-pointer p-8 rounded transition-all"
+              style={{
+                border: '2px dashed var(--ink-border)',
+                background: 'var(--xuan-paper)',
+              }}
+            >
+              <div
+                className="p-3 rounded-full"
+                style={{ border: '1px solid var(--ink-border)', color: 'var(--ink-mid)', background: 'var(--silk-white)' }}
+              >
                 <Upload size={24} />
               </div>
               <div className="text-center">
-                <span className="text-base font-semibold block text-slate-200">
+                <span className="text-base font-sans-cn font-medium block" style={{ color: 'var(--ink-dark)' }}>
                   拖入或点击上传回测 CSV 报告
                 </span>
-                <span className="text-xs text-slate-500 mt-1 block">
+                <span className="text-xs mt-1 block font-sans-cn" style={{ color: 'var(--ink-mid)' }}>
                   支持 TradingView 策略生成器导出的原始数据
                 </span>
               </div>
               <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
             </label>
             {uploadLog && (
-              <div className={`mt-4 text-sm p-3 rounded flex items-center gap-2 border ${
-                uploadLog.includes('✅') 
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                  : 'bg-red-500/10 border-red-500/20 text-red-400'
-              }`}>
+              <div
+                className="mt-4 text-sm p-3 rounded flex items-center gap-2"
+                style={{
+                  border: `1px solid ${uploadLog.includes('✅') ? 'var(--mo-green)' : 'var(--zhu-red)'}`,
+                  color: uploadLog.includes('✅') ? 'var(--mo-green)' : 'var(--zhu-red)',
+                  background: uploadLog.includes('✅') ? 'rgba(45,106,79,0.05)' : 'rgba(181,67,42,0.05)',
+                }}
+              >
                 {uploadLog.includes('✅') ? <CheckCircle size={16} /> : <XCircle size={16} />}
-                {uploadLog}
+                <span className="font-sans-cn">{uploadLog}</span>
               </div>
             )}
           </div>
         </section>
 
         {data.length > 0 && (
-          <div className="animate-in fade-in duration-500">
-            {/* Stats Overview */}
+          <div className="fade-in-up">
+            {/* 数据概览 */}
             <section className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-8">
-              <StatCard label="原始组合" value={stats.total} color="blue" />
-              <StatCard label="去重后" value={stats.deduplicated} color="cyan" />
+              <StatCard label="原始组合" value={stats.total} color="green" />
+              <StatCard label="去重后" value={stats.deduplicated} color="green" />
               <StatCard label="通过过滤" value={stats.filtered} color="green" />
-              <StatCard label="帕累托最优" value={stats.pareto} color="purple" />
-              <StatCard label="MAX 收益" value={stats.maxReturn.toFixed(1) + '%'} color="amber" />
-              <StatCard label="MAX Calmar" value={stats.maxCalmar.toFixed(2)} color="rose" />
+              <StatCard label="帕累托最优" value={stats.pareto} color="amber" />
+              <StatCard label="最高收益" value={stats.maxReturn.toFixed(1) + '%'} color="amber" />
+              <StatCard label="最高Calmar" value={stats.maxCalmar.toFixed(2)} color="rose" />
               <StatCard label="参数维度" value={(stats.paramDimensions + stats.boolDimensions) + 'D'} color="teal" />
             </section>
 
-            {/* ── Robustness Scan Progress ── */}
+            {/* ── 稳健性扫描进度 ── */}
             {robustnessProgress > 0 && robustnessProgress < 100 && (
-              <div className="mb-6 p-4 rounded bg-slate-800 border border-slate-700 flex items-center gap-4">
-                <Activity className="animate-spin text-blue-500 flex-shrink-0" size={20} />
+              <div
+                className="mb-6 p-4 rounded flex items-center gap-4 zen-card"
+              >
+                <Activity className="animate-spin flex-shrink-0" size={20} style={{ color: 'var(--bamboo)' }} />
                 <div className="flex-1">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-semibold text-slate-300">
-                      单步邻居稳健性扫描中...
+                    <span className="text-xs font-sans-cn" style={{ color: 'var(--ink-mid)' }}>
+                      单步邻居稳健性扫描中…
                     </span>
-                    <span className="text-xs font-bold text-blue-400 font-mono-tech">
+                    <span className="text-xs font-bold font-mono-tech" style={{ color: 'var(--bamboo)' }}>
                       {robustnessProgress}%
                     </span>
                   </div>
-                  <div className="w-full h-2 rounded bg-slate-700 overflow-hidden">
-                    <div className="h-full bg-blue-500 transition-all duration-300"
-                      style={{ width: `${robustnessProgress}%` }} />
+                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-border)' }}>
+                    <div className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${robustnessProgress}%`, background: 'var(--mo-green)' }} />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ── Algo Info Panel ── */}
+            {/* ── 算法说明 ── */}
             <section className="mb-8">
-              <div className="bg-slate-800 rounded border border-slate-700 overflow-hidden">
+              <div className="zen-card overflow-hidden">
                 <button
-                  className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-700/50 transition-colors"
+                  className="w-full flex items-center justify-between px-6 py-4 transition-colors"
+                  style={{ background: 'transparent' }}
                   onClick={() => setShowAlgoInfo(!showAlgoInfo)}
                 >
                   <div className="flex items-center gap-3">
-                    <Shield size={16} className="text-blue-500" />
-                    <span className="font-semibold text-sm text-slate-300">
+                    <Shield size={16} style={{ color: 'var(--bamboo)' }} />
+                    <span className="font-sans-cn font-medium text-sm" style={{ color: 'var(--ink-dark)' }}>
                       单步邻居评估算法说明
                     </span>
                   </div>
                   <div className={`transition-transform duration-300 ${showAlgoInfo ? 'rotate-180' : ''}`}>
-                    <ArrowUpRight size={16} className="text-slate-500 rotate-45" />
+                    <ArrowUpRight size={16} style={{ color: 'var(--ink-mid)' }} className="rotate-45" />
                   </div>
                 </button>
 
                 {showAlgoInfo && (
-                  <div className="px-6 pb-6 border-t border-slate-700 pt-4">
+                  <div className="px-6 pb-6 pt-4" style={{ borderTop: '1px solid var(--ink-border)' }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <div className="rounded bg-red-500/5 border border-red-500/20 p-5">
-                        <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-red-400">
+                      <div className="rounded p-5" style={{ border: '1px solid rgba(181,67,42,0.25)', background: 'rgba(181,67,42,0.03)' }}>
+                        <div className="flex items-center gap-2 mb-3 text-sm font-sans-cn font-medium" style={{ color: 'var(--zhu-red)' }}>
                           <XCircle size={14} /> 核心解决问题
                         </div>
-                        <ul className="space-y-2 text-sm text-slate-400">
-                          <li>• <span className="text-red-400 font-medium">孤峰陷阱</span>：部分参数虽然回测极佳，但稍有改动表现即雪崩。</li>
-                          <li>• <span className="text-red-400 font-medium">维度黑洞</span>：高维参数空间中，传统算法极容易漏掉真正稳健的配置。</li>
+                        <ul className="space-y-2 text-sm font-sans-cn" style={{ color: 'var(--ink-mid)' }}>
+                          <li>• <span className="font-medium" style={{ color: 'var(--zhu-red)' }}>孤峰陷阱</span>：部分参数虽然回测极佳，但稍有改动表现即雪崩。</li>
+                          <li>• <span className="font-medium" style={{ color: 'var(--zhu-red)' }}>维度黑洞</span>：高维参数空间中，传统算法极容易漏掉真正稳健的配置。</li>
                         </ul>
                       </div>
-                      <div className="rounded bg-emerald-500/5 border border-emerald-500/20 p-5">
-                        <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-emerald-500">
-                          <CheckCircle size={14} /> 新算法特性
+                      <div className="rounded p-5" style={{ border: '1px solid rgba(45,106,79,0.25)', background: 'rgba(45,106,79,0.03)' }}>
+                        <div className="flex items-center gap-2 mb-3 text-sm font-sans-cn font-medium" style={{ color: 'var(--mo-green)' }}>
+                          <CheckCircle size={14} /> 算法特性
                         </div>
-                        <ul className="space-y-2 text-sm text-slate-400">
-                          <li>• <span className="text-emerald-500 font-medium">高原效应</span>：搜寻"仅改变 1-2 步进"的邻居，确认"高原区域"。</li>
-                          <li>• <span className="text-emerald-500 font-medium">布尔修正</span>：深度支持布尔型开关参数的变动追踪。</li>
+                        <ul className="space-y-2 text-sm font-sans-cn" style={{ color: 'var(--ink-mid)' }}>
+                          <li>• <span className="font-medium" style={{ color: 'var(--mo-green)' }}>高原效应</span>：搜寻"仅改变 1-2 步进"的邻居，确认"高原区域"。</li>
+                          <li>• <span className="font-medium" style={{ color: 'var(--mo-green)' }}>布尔修正</span>：深度支持布尔型开关参数的变动追踪。</li>
                         </ul>
                       </div>
                     </div>
 
                     {algoStats && (
-                      <div className="rounded bg-slate-900 border border-slate-700 p-5">
-                        <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-                          <Activity size={14} className="text-blue-500" /> 步长推断结果
+                      <div className="rounded p-5" style={{ border: '1px solid var(--ink-border)', background: 'var(--xuan-paper)' }}>
+                        <h4 className="text-sm font-sans-cn font-medium mb-4 flex items-center gap-2" style={{ color: 'var(--ink-dark)' }}>
+                          <Activity size={14} style={{ color: 'var(--bamboo)' }} /> 步长推断结果
                         </h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-2 gap-x-6 text-sm">
                           {Object.entries(algoStats.steps).map(([key, step]) => (
-                            <div key={key} className="flex justify-between items-center py-1 border-b border-slate-800 last:border-0">
-                              <span className="truncate mr-3 text-slate-400">{key}</span>
-                              <span className="font-mono-tech text-blue-400 font-bold bg-blue-500/10 px-2 rounded">
+                            <div key={key} className="flex justify-between items-center py-1" style={{ borderBottom: '1px solid var(--ink-border)' }}>
+                              <span className="truncate mr-3 font-sans-cn" style={{ color: 'var(--ink-mid)' }}>{key}</span>
+                              <span className="font-mono-tech font-bold px-2 rounded" style={{ color: 'var(--bamboo)', background: 'rgba(74,124,89,0.08)' }}>
                                 {isFinite(step) ? step.toFixed(4).replace(/\.?0+$/, '') : 'INF'}
                               </span>
                             </div>
@@ -714,15 +743,15 @@ const AnalysisDashboard = () => {
               </div>
             </section>
 
-            {/* ── Filter & Score Config ── */}
+            {/* ── 过滤器 & 权重配置 ── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Filter Panel */}
-              <section className="bg-slate-800 rounded border border-slate-700 p-6">
+              {/* 过滤面板 */}
+              <section className="zen-card p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 rounded bg-slate-900 border border-slate-700">
-                    <Filter size={16} className="text-slate-300" />
+                  <div className="p-2 rounded" style={{ border: '1px solid var(--ink-border)', background: 'var(--xuan-paper)' }}>
+                    <Filter size={16} style={{ color: 'var(--bamboo)' }} />
                   </div>
-                  <h2 className="text-lg font-bold text-slate-100">
+                  <h2 className="text-lg font-serif-cn font-bold" style={{ color: 'var(--ink-dark)' }}>
                     分层核心过滤
                   </h2>
                 </div>
@@ -730,39 +759,39 @@ const AnalysisDashboard = () => {
                 <div className="space-y-6">
                   <div>
                     <div className="flex items-center gap-2 mb-4">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        LAYER 1 // 生存筛选
+                      <div className="w-2 h-2 rounded-full" style={{ background: 'var(--mo-green)' }} />
+                      <span className="text-xs font-sans-cn tracking-wider" style={{ color: 'var(--ink-mid)' }}>
+                        第一层 · 生存筛选
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       {filterInputs.filter(f=>f.category==='survival').map(({ key, label, step }) => (
                         <div key={key}>
-                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">{label}</label>
+                          <label className="block text-xs font-sans-cn mb-1.5" style={{ color: 'var(--ink-mid)' }}>{label}</label>
                           <input type="number" step={step} value={filters[key]}
                             onChange={(e)=>setFilters({...filters,[key]:Number(e.target.value)})}
-                            className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono-tech transition-colors" />
+                          />
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <hr className="border-slate-700" />
+                  <div className="ink-divider" />
 
                   <div>
                     <div className="flex items-center gap-2 mb-4">
-                      <div className="w-2 h-2 rounded-full bg-amber-500" />
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        LAYER 2 // 性能深度过滤
+                      <div className="w-2 h-2 rounded-full" style={{ background: 'var(--gold-lt)' }} />
+                      <span className="text-xs font-sans-cn tracking-wider" style={{ color: 'var(--ink-mid)' }}>
+                        第二层 · 性能深度过滤
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       {filterInputs.filter(f=>f.category==='risk').map(({ key, label, step }) => (
                         <div key={key}>
-                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">{label}</label>
+                          <label className="block text-xs font-sans-cn mb-1.5" style={{ color: 'var(--ink-mid)' }}>{label}</label>
                           <input type="number" step={step} value={filters[key]}
                             onChange={(e)=>setFilters({...filters,[key]:Number(e.target.value)})}
-                            className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono-tech transition-colors" />
+                          />
                         </div>
                       ))}
                     </div>
@@ -770,13 +799,13 @@ const AnalysisDashboard = () => {
                 </div>
               </section>
 
-              {/* Score Weights Panel */}
-              <section className="bg-slate-800 rounded border border-slate-700 p-6">
+              {/* 权重面板 */}
+              <section className="zen-card p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 rounded bg-slate-900 border border-slate-700">
-                    <Award size={16} className="text-slate-300" />
+                  <div className="p-2 rounded" style={{ border: '1px solid var(--ink-border)', background: 'var(--xuan-paper)' }}>
+                    <Award size={16} style={{ color: 'var(--gold)' }} />
                   </div>
-                  <h2 className="text-lg font-bold text-slate-100">
+                  <h2 className="text-lg font-serif-cn font-bold" style={{ color: 'var(--ink-dark)' }}>
                     加权评估矩阵
                   </h2>
                 </div>
@@ -790,34 +819,38 @@ const AnalysisDashboard = () => {
                     { key:'sharpe', label:'Sharpe Ratio' },
                   ].map(({ key, label }) => (
                     <div key={key}>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1.5">{label}</label>
+                      <label className="block text-xs font-sans-cn mb-1.5" style={{ color: 'var(--ink-mid)' }}>{label}</label>
                       <input type="number" step="0.05" min="0" max="1"
                         value={scoreWeights[key]||0}
                         onChange={(e)=>setScoreWeights({...scoreWeights,[key]:Number(e.target.value)})}
-                        className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm text-amber-500 focus:outline-none focus:border-amber-500 font-mono-tech transition-colors" />
+                        style={{ color: 'var(--gold)' }}
+                      />
                     </div>
                   ))}
                 </div>
 
-                <hr className="border-slate-700 mb-6" />
+                <div className="ink-divider" />
 
-                <div>
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-200 mb-1">
-                    <Shield size={16} className="text-blue-500" /> 稳健性置信因子
+                <div className="mt-6">
+                  <h4 className="flex items-center gap-2 text-sm font-sans-cn font-medium mb-1" style={{ color: 'var(--ink-dark)' }}>
+                    <Shield size={16} style={{ color: 'var(--bamboo)' }} /> 稳健性置信因子
                   </h4>
-                  <p className="text-xs text-slate-500 mb-4">决定"选高原"还是"选山尖"的平衡杠杆</p>
+                  <p className="text-xs font-sans-cn mb-4" style={{ color: 'var(--ink-mid)' }}>决定「选高原」还是「选山尖」的平衡杠杆</p>
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <input type="range" min="0" max="1" step="0.05"
                         value={robustnessWeight}
                         onChange={(e)=>setRobustnessWeight(Number(e.target.value))}
-                        className="w-full h-2 rounded-full appearance-none cursor-pointer bg-slate-900 border border-slate-700 accent-blue-500" />
-                      <div className="flex justify-between mt-2 text-xs font-semibold text-slate-500">
+                        className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                        style={{ accentColor: 'var(--mo-green)' }}
+                      />
+                      <div className="flex justify-between mt-2 text-xs font-sans-cn" style={{ color: 'var(--ink-mid)' }}>
                         <span>纯收益导向</span>
                         <span>极致稳健</span>
                       </div>
                     </div>
-                    <div className="px-4 py-2 rounded bg-slate-900 border border-slate-700 font-bold text-xl min-w-[80px] text-center text-blue-500 font-mono-tech">
+                    <div className="px-4 py-2 rounded font-bold text-xl min-w-[80px] text-center font-mono-tech"
+                      style={{ border: '1px solid var(--ink-border)', color: 'var(--mo-green)', background: 'var(--xuan-paper)' }}>
                       {(robustnessWeight*100).toFixed(0)}<span className="text-sm ml-1">%</span>
                     </div>
                   </div>
@@ -825,87 +858,88 @@ const AnalysisDashboard = () => {
               </section>
             </div>
 
-            {/* Results Section */}
+            {/* 结果区域 */}
             <div className={`transition-all duration-700 ${robustnessProgress > 0 && robustnessProgress < 100 ? 'opacity-30 blur-sm pointer-events-none scale-[0.99]' : 'opacity-100 scale-100'}`}>
-              
-              {/* ── GOLD Recommendation Card ── */}
+
+              {/* ── 金榜推荐卡 ── */}
               {recommendedParameter && (
-                <section className="mb-12 relative">
-                  <div className="relative rounded bg-slate-800 border-2 border-amber-500 overflow-hidden shadow-sm">
-                    {/* Header row */}
-                    <div className="p-6 md:p-8 border-b border-slate-700 bg-slate-800">
+                <section className="mb-12">
+                  <div className="relative rounded overflow-hidden" style={{ border: '2px solid var(--gold)', background: 'var(--silk-white)' }}>
+                    {/* 标题行 */}
+                    <div className="p-6 md:p-8" style={{ borderBottom: '1px solid var(--ink-border)' }}>
                       <div className="flex flex-col md:flex-row gap-6 items-start justify-between">
                         <div className="flex gap-5 items-start">
-                          <div className="p-4 rounded bg-amber-500/10 border border-amber-500/20 text-amber-500 flex-shrink-0">
-                            <Award size={36} strokeWidth={2} />
+                          <div className="p-4 rounded flex-shrink-0"
+                            style={{ background: 'rgba(139,105,20,0.08)', border: '1px solid rgba(139,105,20,0.3)', color: 'var(--gold)' }}>
+                            <Award size={32} strokeWidth={1.5} />
                           </div>
                           <div>
                             <div className="flex items-center gap-3 mb-2">
-                              <span className="text-xs font-bold uppercase tracking-wider text-amber-500 font-mono-tech">
-                                AI SELECTED OPTIMAL
+                              <span className="text-xs font-sans-cn tracking-widest" style={{ color: 'var(--gold)' }}>
+                                智能优选 · 最优参数组
                               </span>
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 border border-slate-700 text-slate-400 font-mono-tech">
-                                ROW #{recommendedParameter.originalIndex}
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono-tech" style={{ border: '1px solid var(--ink-border)', color: 'var(--ink-mid)' }}>
+                                第 {recommendedParameter.originalIndex} 行
                               </span>
                             </div>
-                            <h2 className="text-2xl font-bold text-slate-100 mb-2">
+                            <h2 className="text-2xl font-serif-cn font-bold mb-2" style={{ color: 'var(--ink-dark)' }}>
                               最强推荐参数组
                             </h2>
-                            <div className="flex items-center gap-2 text-slate-400">
-                              <TrendingUp size={14} className="text-emerald-500" />
-                              <span className="text-sm">该组合在全域参数变动中表现出极高的生存韧性</span>
+                            <div className="flex items-center gap-2" style={{ color: 'var(--ink-mid)' }}>
+                              <TrendingUp size={14} style={{ color: 'var(--mo-green)' }} />
+                              <span className="text-sm font-sans-cn">该组合在全域参数变动中表现出极高的生存韧性</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="text-right">
-                          <div className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">
-                            COMBINED SCORE
+                          <div className="text-xs font-sans-cn tracking-widest mb-1" style={{ color: 'var(--ink-mid)' }}>
+                            综合得分
                           </div>
-                          <div className="text-5xl font-bold text-amber-500 font-mono-tech">
+                          <div className="text-5xl font-bold font-mono-tech" style={{ color: 'var(--gold)' }}>
                             {(recommendedParameter.combinedScore||0).toFixed(3)}
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-6 md:p-8 bg-slate-900/50">
-                      {/* Metrics grid */}
+                    <div className="p-6 md:p-8" style={{ background: 'var(--xuan-paper)' }}>
+                      {/* 指标网格 */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        {/* Robustness */}
-                        <div className="rounded bg-slate-800 border border-slate-700 p-5">
-                          <div className="text-xs font-semibold uppercase text-slate-400 mb-3">稳健性评估</div>
+                        {/* 稳健性 */}
+                        <div className="rounded p-5 zen-card">
+                          <div className="text-xs font-sans-cn mb-3" style={{ color: 'var(--ink-mid)' }}>稳健性评估</div>
                           <div className="flex justify-between items-baseline mb-2">
-                            <span className="text-xs text-slate-500">高原置信度</span>
-                            <span className="text-2xl font-bold text-blue-400 font-mono-tech">
+                            <span className="text-xs font-sans-cn" style={{ color: 'var(--ink-mid)' }}>高原置信度</span>
+                            <span className="text-2xl font-bold font-mono-tech" style={{ color: 'var(--bamboo)' }}>
                               {((recommendedParameter.robustnessScore||0)*100).toFixed(0)}%
                             </span>
                           </div>
-                          <div className="h-2 rounded bg-slate-700 overflow-hidden mb-2">
-                            <div className="h-full bg-blue-500 transition-all duration-1000"
-                              style={{ width: `${(recommendedParameter.robustnessScore||0)*100}%` }} />
+                          <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: 'var(--ink-border)' }}>
+                            <div className="h-full rounded-full transition-all duration-1000"
+                              style={{ width: `${(recommendedParameter.robustnessScore||0)*100}%`, background: 'var(--mo-green)' }} />
                           </div>
-                          <div className="flex justify-between text-xs text-slate-500 font-mono-tech">
-                            <span>{recommendedParameter.stableNeighborCount} STABLE</span>
-                            <span>{recommendedParameter.neighborCount} NBRS</span>
+                          <div className="flex justify-between text-xs font-mono-tech" style={{ color: 'var(--ink-mid)' }}>
+                            <span>稳定 {recommendedParameter.stableNeighborCount}</span>
+                            <span>邻居 {recommendedParameter.neighborCount}</span>
                           </div>
                         </div>
 
-                        {/* Core metrics */}
-                        <div className="rounded bg-slate-800 border border-slate-700 p-5 lg:col-span-2">
-                          <div className="text-xs font-semibold uppercase text-slate-400 mb-4">核心绩效数据</div>
+                        {/* 核心指标 */}
+                        <div className="rounded p-5 zen-card lg:col-span-2">
+                          <div className="text-xs font-sans-cn mb-4" style={{ color: 'var(--ink-mid)' }}>核心绩效数据</div>
                           <div className="grid grid-cols-3 gap-y-4 gap-x-2">
                             {[
-                              { label:'CALMAR', val:(recommendedParameter.calmarRatio||0).toFixed(2), color:'text-emerald-500' },
-                              { label:'NET PROFIT', val:`${(recommendedParameter.returnPct||0).toFixed(2)}%`, color:'text-blue-400' },
-                              { label:'MAX DD', val:`${(recommendedParameter.ddPct||0).toFixed(2)}%`, color:(recommendedParameter.ddPct||0)>15?'text-red-500':'text-emerald-500' },
-                              { label:'PROFIT FACTOR', val:(recommendedParameter.profitFactor||0).toFixed(2), color:'text-slate-100' },
-                              { label:'WIN RATE', val:`${(recommendedParameter.winRate||0).toFixed(1)}%`, color:'text-slate-100' },
-                              { label:'TRADES', val:recommendedParameter.totalTrades, color:'text-slate-400' },
+                              { label:'Calmar', val:(recommendedParameter.calmarRatio||0).toFixed(2), color:'var(--mo-green)' },
+                              { label:'净收益', val:`${(recommendedParameter.returnPct||0).toFixed(2)}%`, color:'var(--mo-green)' },
+                              { label:'最大回撤', val:`${(recommendedParameter.ddPct||0).toFixed(2)}%`, color:(recommendedParameter.ddPct||0)>15?'var(--zhu-red)':'var(--mo-green)' },
+                              { label:'盈利因子', val:(recommendedParameter.profitFactor||0).toFixed(2), color:'var(--ink-dark)' },
+                              { label:'胜率', val:`${(recommendedParameter.winRate||0).toFixed(1)}%`, color:'var(--ink-dark)' },
+                              { label:'交易笔数', val:recommendedParameter.totalTrades, color:'var(--ink-mid)' },
                             ].map(({label, val, color}) => (
                               <div key={label}>
-                                <div className="text-[10px] font-semibold uppercase text-slate-500 mb-1">{label}</div>
-                                <div className={`text-lg font-bold font-mono-tech ${color}`}>
+                                <div className="text-[10px] font-sans-cn mb-1" style={{ color: 'var(--ink-mid)' }}>{label}</div>
+                                <div className="text-lg font-bold font-mono-tech" style={{ color }}>
                                   {val}
                                 </div>
                               </div>
@@ -913,37 +947,37 @@ const AnalysisDashboard = () => {
                           </div>
                         </div>
 
-                        {/* Kelly */}
-                        <div className="rounded bg-slate-800 border border-slate-700 p-5">
-                          <div className="text-xs font-semibold uppercase text-slate-400 mb-3">资金管理</div>
-                          <div className="text-[10px] text-slate-500 mb-1">KELLY CRITERION</div>
-                          <div className="text-xl font-bold mb-3 text-purple-400 font-mono-tech">
+                        {/* 凯利 */}
+                        <div className="rounded p-5 zen-card">
+                          <div className="text-xs font-sans-cn mb-3" style={{ color: 'var(--ink-mid)' }}>资金管理</div>
+                          <div className="text-[10px] font-sans-cn mb-1" style={{ color: 'var(--ink-mid)' }}>Kelly 系数</div>
+                          <div className="text-xl font-bold mb-3 font-mono-tech" style={{ color: 'var(--gold)' }}>
                             {(recommendedParameter.kellyFraction||0).toFixed(3)}
                           </div>
-                          <div className="rounded bg-slate-900 border border-slate-700 p-3">
-                            <div className="text-[10px] font-semibold uppercase text-slate-400 mb-1">建议入场仓位</div>
-                            <div className="text-2xl font-bold text-purple-400 font-mono-tech">
+                          <div className="rounded p-3" style={{ border: '1px solid var(--ink-border)', background: 'var(--xuan-paper)' }}>
+                            <div className="text-[10px] font-sans-cn mb-1" style={{ color: 'var(--ink-mid)' }}>建议入场仓位</div>
+                            <div className="text-2xl font-bold font-mono-tech" style={{ color: 'var(--gold)' }}>
                               {(Math.max(0,recommendedParameter.kellyFraction||0)*50).toFixed(1)}%
                             </div>
-                            <div className="text-[10px] mt-1 text-slate-500">* Half-Kelly 保守策略</div>
+                            <div className="text-[10px] mt-1 font-sans-cn" style={{ color: 'var(--ink-mid)' }}>* Half-Kelly 保守策略</div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Strategy Params */}
+                      {/* 策略参数 */}
                       {recommendedParameter.strategyParams && Object.keys(recommendedParameter.strategyParams).length > 0 && (
-                        <div className="rounded bg-slate-800 border border-slate-700 p-5 mb-5">
-                          <h4 className="flex items-center gap-2 text-[10px] font-bold uppercase text-slate-400 mb-4">
-                            <Zap size={12} className="text-blue-500" /> SCRIPT INPUTS // 策略参数配置
+                        <div className="rounded p-5 mb-5 zen-card">
+                          <h4 className="flex items-center gap-2 text-xs font-sans-cn font-medium mb-4" style={{ color: 'var(--ink-mid)' }}>
+                            <Zap size={12} style={{ color: 'var(--bamboo)' }} /> 策略参数配置
                           </h4>
                           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                             {Object.entries(recommendedParameter.strategyParams)
                               .filter(([,v]) => v!==null && v!==undefined && v!=='' && !(typeof v==='number'&&isNaN(v)))
                               .map(([key,value]) => (
                                 <div key={key}>
-                                  <div className="text-[10px] font-semibold uppercase text-slate-500 truncate mb-1">{key}</div>
-                                  <div className="font-bold text-sm text-blue-400 font-mono-tech">
-                                    {typeof value==='boolean'?(value?'TRUE':'FALSE'):value}
+                                  <div className="text-[10px] font-sans-cn truncate mb-1" style={{ color: 'var(--ink-mid)' }}>{key}</div>
+                                  <div className="font-bold text-sm font-mono-tech" style={{ color: 'var(--bamboo)' }}>
+                                    {typeof value==='boolean'?(value?'是':'否'):value}
                                   </div>
                                 </div>
                               ))}
@@ -951,13 +985,14 @@ const AnalysisDashboard = () => {
                         </div>
                       )}
 
-                      {/* Status badges */}
+                      {/* 状态标签 */}
                       <div className="flex items-center gap-3 flex-wrap">
                         {[
-                          { icon:<Activity size={14}/>, label:'Stability: Premium', border:'border-emerald-500/20', text:'text-emerald-500' },
-                          { icon:<Shield size={14}/>, label:'Risk: Optimized', border:'border-blue-500/20', text:'text-blue-500' },
-                        ].map(({icon, label, border, text}) => (
-                          <div key={label} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 border ${border} ${text}`}>
+                          { icon:<Activity size={14}/>, label:'稳定性：优秀', borderColor:'var(--mo-green)', textColor:'var(--mo-green)', bg:'rgba(45,106,79,0.06)' },
+                          { icon:<Shield size={14}/>, label:'风险：已优化', borderColor:'var(--bamboo)', textColor:'var(--bamboo)', bg:'rgba(74,124,89,0.06)' },
+                        ].map(({icon, label, borderColor, textColor, bg}) => (
+                          <div key={label} className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-sans-cn"
+                            style={{ border: `1px solid ${borderColor}`, color: textColor, background: bg }}>
                             {icon} {label}
                           </div>
                         ))}
@@ -967,27 +1002,28 @@ const AnalysisDashboard = () => {
                 </section>
               )}
 
-              {/* ── Ranking Tables ── */}
+              {/* ── 排行榜表格 ── */}
               <div className="grid grid-cols-1 gap-8">
                 {/* TOP 10 */}
                 <section>
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h2 className="text-xl font-bold flex items-center gap-3 text-slate-100">
-                        <div className="w-1.5 h-6 rounded bg-blue-500" />
-                        强势排行榜 TOP 10
+                      <h2 className="text-xl font-serif-cn font-bold flex items-center gap-3" style={{ color: 'var(--ink-dark)' }}>
+                        <div className="w-1 h-6 rounded" style={{ background: 'var(--mo-green)' }} />
+                        优选排行榜 TOP 10
                       </h2>
-                      <p className="text-xs mt-1 text-slate-400">
+                      <p className="text-xs mt-1 font-sans-cn" style={{ color: 'var(--ink-mid)' }}>
                         已综合收益效能与参数稳健性进行加权排序
                       </p>
                     </div>
                     <button
                       onClick={()=>setShowParetoOnly(!showParetoOnly)}
-                      className={`px-4 py-2 rounded text-xs font-semibold transition-colors border ${
-                        showParetoOnly
-                          ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
-                          : 'bg-slate-800 border-slate-700 text-slate-300'
-                      }`}
+                      className="px-4 py-2 rounded text-xs font-sans-cn transition-colors"
+                      style={{
+                        border: `1px solid ${showParetoOnly ? 'var(--gold)' : 'var(--ink-border)'}`,
+                        color: showParetoOnly ? 'var(--gold)' : 'var(--ink-mid)',
+                        background: showParetoOnly ? 'rgba(139,105,20,0.06)' : 'var(--silk-white)',
+                      }}
                     >
                       {showParetoOnly ? '★ 展示全部' : '☆ 仅看帕累托最优'}
                     </button>
@@ -995,32 +1031,32 @@ const AnalysisDashboard = () => {
                   <DataTable data={displayData} columns={recommendColumns}
                     rowClassName={(row) => {
                       const isRec = recommendedParameter?.originalIndex === row.originalIndex;
-                      return isRec ? 'bg-amber-500/5 font-bold hover:bg-amber-500/10' :
-                             isPareto(row) ? 'bg-purple-500/5 hover:bg-purple-500/10' : '';
+                      return isRec ? 'font-bold' : '';
                     }}
                   />
                 </section>
 
-                {/* Raw data pool */}
+                {/* 原始数据池 */}
                 <section>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                     <div>
-                      <h2 className="text-xl font-bold flex items-center gap-3 text-slate-100">
-                        <div className="w-1.5 h-6 rounded bg-slate-600" />
+                      <h2 className="text-xl font-serif-cn font-bold flex items-center gap-3" style={{ color: 'var(--ink-dark)' }}>
+                        <div className="w-1 h-6 rounded" style={{ background: 'var(--ink-border)' }} />
                         原始数据明细池
                       </h2>
-                      <p className="text-xs mt-1 text-slate-400">
+                      <p className="text-xs mt-1 font-sans-cn" style={{ color: 'var(--ink-mid)' }}>
                         完整记录每一组参数的回测表现与过滤状态
                       </p>
                     </div>
-                    <div className="flex p-1 rounded bg-slate-800 border border-slate-700 gap-1">
+                    <div className="flex p-1 rounded zen-card gap-1">
                       {[{key:'combined', label:'综合分'},{key:'utility', label:'效用分'},{key:'original', label:'原始行'}].map(({key, label}) => (
                         <button key={key} onClick={()=>setAllTableSort(key)}
-                          className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
-                            allTableSort===key
-                              ? 'bg-slate-700 text-slate-100'
-                              : 'text-slate-400 hover:text-slate-300'
-                          }`}>
+                          className="px-3 py-1.5 rounded text-xs font-sans-cn transition-colors"
+                          style={{
+                            background: allTableSort===key ? 'var(--xuan-paper)' : 'transparent',
+                            color: allTableSort===key ? 'var(--ink-dark)' : 'var(--ink-mid)',
+                            border: allTableSort===key ? '1px solid var(--ink-border)' : '1px solid transparent',
+                          }}>
                           {label}
                         </button>
                       ))}
@@ -1029,7 +1065,7 @@ const AnalysisDashboard = () => {
                   <DataTable data={allTableData.slice(0, 500)} columns={allDataColumns}
                     rowClassName={(row) => {
                       const isRec = recommendedParameter?.originalIndex === row.originalIndex;
-                      return isRec ? 'bg-amber-500/5 font-bold' : row.passed ? '' : 'text-slate-500 bg-slate-800/10';
+                      return isRec ? 'font-bold' : row.passed ? '' : '';
                     }}
                   />
                 </section>
@@ -1038,23 +1074,27 @@ const AnalysisDashboard = () => {
           </div>
         )}
 
-        {/* ── Empty state ── */}
+        {/* ── 空状态 ── */}
         {data.length === 0 && (
           <section className="mt-24 text-center">
             <div className="max-w-md mx-auto">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 bg-slate-800 border border-slate-700">
-                <BarChart3 size={32} className="text-slate-500" />
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+                style={{ border: '1px solid var(--ink-border)', background: 'var(--silk-white)' }}
+              >
+                <BarChart3 size={32} style={{ color: 'var(--ink-border)' }} />
               </div>
 
-              <h2 className="text-xl font-bold mb-3 text-slate-300">
-                等待数据注入
+              <h2 className="text-xl font-serif-cn font-bold mb-3" style={{ color: 'var(--ink-mid)' }}>
+                静候数据
               </h2>
-              <p className="text-sm leading-relaxed mb-6 text-slate-500">
-                该系统将自动解析您的交易策略报告，通过数学建模从海量结果中锁定具备长效竞争力的核心参数。
+              <p className="text-sm leading-relaxed mb-6 font-sans-cn" style={{ color: 'var(--ink-mid)' }}>
+                上传回测报告后，系统将自动解析数据，通过数学建模从海量结果中锁定具备长效竞争力的核心参数。
               </p>
               <div className="flex gap-2 justify-center">
-                {['NO DATA', 'ANALYSIS IDLE', 'ENGINE v3.2'].map(t => (
-                  <div key={t} className="px-3 py-1 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-500">
+                {['暂无数据', '分析待命', '禅道引擎 v3.2'].map(t => (
+                  <div key={t} className="px-3 py-1 rounded text-[10px] font-sans-cn"
+                    style={{ border: '1px solid var(--ink-border)', color: 'var(--ink-mid)', background: 'var(--silk-white)' }}>
                     {t}
                   </div>
                 ))}
@@ -1064,14 +1104,18 @@ const AnalysisDashboard = () => {
         )}
       </div>
 
-      {/* ── Footer status bar ── */}
-      <div className="mt-16 px-6 py-4 flex flex-col md:flex-row gap-4 items-center justify-between text-xs border-t border-slate-800 bg-slate-900 text-slate-500 font-mono-tech">
-        <div className="flex items-center gap-4">
-          <span className="text-blue-500">NEXUS QUANT ENGINE v3.2</span>
-          <span>// LATENT STABILITY ALGORITHM</span>
+      {/* ── 底部状态栏 ── */}
+      <div
+        className="mt-16 px-6 py-4 flex flex-col md:flex-row gap-4 items-center justify-between text-xs"
+        style={{ borderTop: '1px solid var(--ink-border)', background: 'var(--silk-white)', color: 'var(--ink-mid)' }}
+      >
+        <div className="flex items-center gap-4 font-sans-cn">
+          <span style={{ color: 'var(--mo-green)' }}>禅道量化引擎 v3.2</span>
+          <span style={{ color: 'var(--ink-border)' }}>·</span>
+          <span>潜在稳健性算法</span>
         </div>
-        <div className="flex items-center gap-4">
-          <span>DISCLAIMER: 仅供策略研究参考，不构成投资建议</span>
+        <div className="font-sans-cn">
+          <span style={{ color: 'var(--ink-mid)' }}>免责声明：仅供策略研究参考，不构成投资建议</span>
         </div>
       </div>
     </div>
