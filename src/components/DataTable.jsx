@@ -1,29 +1,26 @@
 import React from 'react';
 
 const DataTable = ({ data, columns, rowClassName }) => (
-  <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid rgba(0,212,255,0.2)', background: 'rgba(5,10,20,0.7)' }}>
-    <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
-      <table className="w-full text-xs border-collapse">
-        <thead className="sticky top-0 z-10" style={{ background: 'rgba(0,212,255,0.08)', borderBottom: '1px solid rgba(0,212,255,0.2)' }}>
+  <div className="overflow-x-auto rounded border border-slate-700 bg-slate-900">
+    <div className="max-h-[500px] overflow-y-auto">
+      <table className="w-full text-sm border-collapse text-left">
+        <thead className="sticky top-0 z-10 bg-slate-800 border-b border-slate-700 shadow-sm">
           <tr>
             {columns.map((col, i) => (
-              <th key={i} className={`px-4 py-3 font-bold tracking-[0.12em] uppercase text-[10px] ${col.align || 'text-left'}`}
-                style={{ fontFamily: "'Share Tech Mono', monospace", color: '#7eb3d4' }}>
+              <th key={i} className={`px-4 py-3 font-semibold text-slate-300 ${col.align || 'text-left'}`}>
                 {col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-slate-800/50">
           {data.map((row, idx) => (
             <tr
               key={row.originalIndex ?? idx}
-              className={`transition-colors duration-150 ${rowClassName?.(row, idx) || ''}`}
-              style={{ borderBottom: '1px solid rgba(0,212,255,0.06)' }}
+              className={`transition-colors duration-150 hover:bg-slate-700/50 even:bg-slate-800/20 ${rowClassName?.(row, idx) || ''}`}
             >
               {columns.map((col, i) => (
-                <td key={i} className={`px-4 py-3 whitespace-nowrap ${col.align || 'text-left'}`}
-                  style={{ fontFamily: "'Share Tech Mono', monospace", color: '#e8f4fd', fontSize: '11px' }}>
+                <td key={i} className={`px-4 py-3 whitespace-nowrap text-slate-100 font-mono-tech ${col.align || 'text-left'}`}>
                   {col.render(row, idx)}
                 </td>
               ))}
@@ -31,9 +28,8 @@ const DataTable = ({ data, columns, rowClassName }) => (
           ))}
           {data.length === 0 && (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center italic"
-                style={{ fontFamily: "'Share Tech Mono', monospace", color: 'rgba(0,212,255,0.3)' }}>
-                NO DATA // 没有找到匹配的数据
+              <td colSpan={columns.length} className="px-4 py-12 text-center text-slate-500 italic">
+                没有找到匹配的数据
               </td>
             </tr>
           )}
