@@ -15,16 +15,16 @@ const AnalysisDashboard = () => {
     minTrades: 20,
     minProfitFactor: 1.2,
     maxSingleLossPct: 15,
-    maxDrawdown: 20,
-    minSharpe: 0.10,
-    minSortino: 1.0,
+    maxDrawdown: 30,
+    minSharpe: 0,
+    minSortino: 0.8,
     minWinRate: 25,
     minWinLossRatio: 2.0,
   });
   const [scoreWeights, setScoreWeights] = useState({
-    calmar: 0.30, sortino: 0.25, profitFactor: 0.25, sharpe: 0.05, netReturn: 0.15
+    calmar: 0.30, sortino: 0.20, profitFactor: 0.20, sharpe: 0.05, netReturn: 0.25
   });
-  const [robustnessWeight, setRobustnessWeight] = useState(0.30);
+  const [robustnessWeight, setRobustnessWeight] = useState(0.40);
   const [showParetoOnly, setShowParetoOnly] = useState(false);
   const [allTableSort, setAllTableSort] = useState('combined');
   const [uploadLog, setUploadLog] = useState('');
@@ -140,8 +140,6 @@ const AnalysisDashboard = () => {
     if (row.totalTrades < filters.minTrades) reasons.push(`交易数<${filters.minTrades}`);
     if (row.marginCalls > 0) reasons.push('有爆仓');
     if (row.singleLossPct > filters.maxSingleLossPct) reasons.push(`单笔亏损>${filters.maxSingleLossPct}%`);
-    const sampleOk = row.ddPct >= 2.0 || (row.totalTrades >= 30 && row.winningTrades >= 8);
-    if (!sampleOk) reasons.push('样本不足(回撤<2%需30笔+8胜)');
 
     if (reasons.length === 0) {
       if (row.ddPct > filters.maxDrawdown) reasons.push(`回撤>${filters.maxDrawdown}%`);
@@ -187,7 +185,7 @@ const AnalysisDashboard = () => {
 
   const paretoFront = useMemo(() => {
     if (scoredData.length === 0) return [];
-    const dims = ['calmarRatio', 'sharpe', 'sortino', 'profitFactor'];
+    const dims = ['calmarRatio', 'returnPct', 'sortino', 'profitFactor'];
     return scoredData.filter((item, i) =>
       !scoredData.some((other, j) => i !== j &&
         dims.every(d => other[d] >= item[d]) && dims.some(d => other[d] > item[d]))
